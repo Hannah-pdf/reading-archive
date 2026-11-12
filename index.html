@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>독자 데이터 랩</title>
+<meta name="description" content="『유체를 이탈하였습니다』 1~20화 별점·좋아요·인기 댓글과 리딩 로그를 직접 모아 같은 회차 축에 겹쳐 본 독자 데이터 분석">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root{
+    --bg:#F3F5F8; --card:#FFFFFF; --ink:#141820; --sub:#5B6472; --cap:#98A1AE; --line:#E6E9EE;
+    --blue:#2457E6; --blue-soft:#E9EFFD; --grey:#A9B1BC; --grey-soft:#EEF0F3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Pretendard,"Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased}
+  button{font-family:inherit}
+  .wrap{max-width:1360px;margin:0 auto;padding:36px 32px 64px}
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:28px}
+  .kicker{font-size:13px;font-weight:700;letter-spacing:.08em;color:var(--blue)}
+  h1{font-size:32px;margin:6px 0 6px;letter-spacing:-.02em}
+  .lead{margin:0;color:var(--sub);font-size:15px}
+  .toggle{display:inline-flex;background:#E4E8EE;border-radius:12px;padding:4px;flex-shrink:0}
+  .toggle button{border:0;background:transparent;padding:10px 18px;border-radius:9px;font-size:15px;font-weight:600;color:var(--sub);cursor:pointer}
+  .toggle button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(20,24,32,.12)}
+  nav.tabs{display:flex;gap:8px;margin:0 0 20px}
+  nav.tabs button{border:0;background:transparent;padding:9px 14px;border-radius:10px;font-size:15px;font-weight:600;color:var(--sub);cursor:pointer}
+  nav.tabs button.on{background:var(--ink);color:#fff}
+  nav.tabs .home{color:var(--blue)}
+  .card{background:var(--card);border-radius:18px;padding:28px 30px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .stack{display:grid;gap:20px}
+  .ctitle{font-size:20px;font-weight:700;margin:0 0 4px;letter-spacing:-.01em}
+  .cmeta{font-size:13.5px;color:var(--cap);margin:0 0 18px}
+  .src{font-size:12.5px;color:var(--cap);margin-top:14px}
+  /* home */
+  .step{cursor:pointer;transition:transform .12s, box-shadow .12s;position:relative;min-height:300px;display:flex;flex-direction:column}
+  .step:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(20,24,32,.08)}
+  .step .no{font-size:13px;font-weight:700;color:var(--blue);letter-spacing:.06em}
+  .step h2{font-size:26px;margin:8px 0 6px}
+  .step p{color:var(--sub);font-size:15px;line-height:1.6;margin:0}
+  .step .big{margin-top:auto;display:flex;gap:22px;align-items:flex-end;padding-top:22px}
+  .step .big b{display:block;font-size:40px;font-weight:800;color:var(--blue);letter-spacing:-.02em;line-height:1}
+  .step .big span{font-size:13px;color:var(--cap)}
+  .step .go{position:absolute;right:26px;top:26px;font-size:14px;font-weight:600;color:var(--sub)}
+  .flow{display:flex;align-items:center;gap:12px;margin:22px 0 0;color:var(--sub);font-size:14px;flex-wrap:wrap}
+  .flow i{font-style:normal;background:var(--card);border-radius:999px;padding:8px 14px;font-weight:600;color:var(--ink)}
+  .flow em{font-style:normal;color:var(--cap)}
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:14.5px}
+  th{font-size:12.5px;color:var(--cap);font-weight:600;text-align:right;padding:8px 6px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+  td.lo{color:var(--blue);font-weight:700}
+  .pill{display:inline-block;font-size:12.5px;font-weight:600;border-radius:999px;padding:3px 10px;background:var(--grey-soft);color:var(--sub)}
+  .pill.b{background:var(--blue-soft);color:var(--blue)}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:10px 16px;font-size:14.5px;line-height:1.55}
+  .kv dt{color:var(--cap)} .kv dd{margin:0}
+  /* reaction */
+  .who{display:flex;justify-content:space-between;align-items:flex-start}
+  .who h3{font-size:22px;margin:0;display:flex;align-items:center;gap:10px}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .num{font-size:52px;font-weight:800;letter-spacing:-.03em;line-height:1;text-align:right}
+  .num small{display:block;font-size:12.5px;font-weight:500;color:var(--cap);letter-spacing:0;margin-top:6px}
+  .bars{margin-top:22px}
+  .bar{display:grid;grid-template-columns:150px 1fr 44px;align-items:center;gap:12px;margin:12px 0;font-size:14.5px}
+  .track{height:12px;background:var(--grey-soft);border-radius:6px;overflow:hidden}
+  .fill{height:100%;border-radius:6px}
+  .bar b{font-variant-numeric:tabular-nums;text-align:right}
+  .quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:26px 16px}
+  .q{background:var(--card);border-radius:16px;padding:20px 22px;position:relative}
+  .q::after{content:"";position:absolute;left:28px;bottom:-9px;width:18px;height:18px;background:var(--card);transform:rotate(45deg);border-radius:3px}
+  .q .top{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--cap)}
+  .q .txt{font-size:18px;font-weight:700;margin:14px 0 2px;line-height:1.45}
+  .q .lk b{font-size:24px;color:var(--ink)}
+  /* insight */
+  .note{display:none;margin-top:18px;border-top:1px dashed var(--line);padding-top:16px}
+  .note label{display:block;font-size:12.5px;font-weight:700;color:var(--blue);letter-spacing:.04em;margin-bottom:8px}
+  .note textarea{width:100%;min-height:72px;border:0;background:var(--blue-soft);border-radius:12px;padding:14px 16px;font:500 16px/1.6 Pretendard,sans-serif;color:var(--ink);resize:vertical}
+  .note textarea::placeholder{color:#8EA3D9}
+  body.insight .note{display:block}
+  .note-only{display:none} body.insight .note-only{display:block}
+  svg text{font-family:Pretendard,"Noto Sans KR",sans-serif}
+  .tip{position:fixed;pointer-events:none;background:var(--ink);color:#fff;font-size:13px;padding:6px 10px;border-radius:8px;opacity:0;white-space:nowrap;z-index:9}
+  .legend{display:flex;gap:16px;font-size:13px;color:var(--sub);margin:-6px 0 12px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  @media (max-width:900px){.grid2,.grid3,.quotes{grid-template-columns:1fr} header{flex-direction:column;align-items:flex-start}}
+  @media (max-width:600px){
+    .wrap{padding:24px 16px 48px} .card{padding:22px 18px;overflow-x:auto} h1{font-size:26px}
+    nav.tabs{gap:4px;overflow-x:auto} nav.tabs button{padding:8px 10px;font-size:14px;white-space:nowrap;flex-shrink:0}
+    table{font-size:13.5px} td,th{white-space:nowrap;padding-left:4px;padding-right:4px}
+    .bar{grid-template-columns:104px 1fr 40px;gap:8px;font-size:13.5px}
+    #vMap,#vLedger{min-width:760px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="kicker">READING DATA LAB</div>
+      <h1>『유체를 이탈하였습니다』 독자 데이터 분석</h1>
+      <p class="lead">공개 화면에서 직접 모은 데이터 · 1~20화 · 2026.11.6 수집</p>
+    </div>
+    <div class="toggle" role="tablist" aria-label="보기 전환">
+      <button id="mChart" class="on" onclick="setMode('chart')">데이터 차팅</button>
+      <button id="mIns" onclick="setMode('insight')">인사이트</button>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs"></nav>
+  <main id="view"></main>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+const D={
+  rating:[9.25,9.50,9.61,9.72,9.58,9.44,9.44,9.60,9.45,8.75,9.63,8.88,8.97,8.36,9.33,9.46,8.77,9.25,7.88,8.19],
+  likes:{11:58,12:54,13:53,14:46,15:54,16:48,17:45,18:39,19:33,20:29},
+  immerse:[5,5,5,5,4,4,5,5,5,5,4,5,4,4,5,4,4,4,4,4],
+  reason:Array.from({length:20},(_,i)=>(i<12||i===14)?'있다':'일단 있다'),
+  readers:[
+    {name:'오래 본 독자',sub:'찐팬 배지가 보이는 댓글',n:52,sum:1023,avg:19.7,color:'var(--blue)',hex:'#2457E6',bars:[['설정 추측·칭찬·질문',387],['캐릭터 불만',298],['로맨스',161]]},
+    {name:'일반 독자',sub:'배지가 보이지 않는 댓글',n:37,sum:427,avg:11.5,color:'var(--grey)',hex:'#A9B1BC',bars:[['전개 불만',123],['전개 질문',82],['설정 혼란',67]]}],
+  quotes:[
+    {ep:14,txt:'진짜 조미 어디 갔어',like:89,badge:true},
+    {ep:15,txt:'역시 자아가 다른 사람이었어',like:83,badge:true},
+    {ep:12,txt:'내용이 너무 혼란스럽다',like:67,badge:false},
+    {ep:12,txt:'조미 몸에 있는 녀석 너 누구야, 궁금해',like:48,badge:true},
+    {ep:10,txt:'답답하다',like:22,badge:null},
+    {ep:13,txt:'재밌는데 왜 안 뜨는지 모르겠다',like:20,badge:null}],
+  ledger:[
+    {q:'1~4화 세계관 질문 3개',d:'잠옷 차림 · 학교 밖 · 유체가 보이는 이유',o:1,c:null},
+    {q:'몸에 다른 사람이 들어왔나?',d:'7화',o:7,c:15},
+    {q:'몸속의 사람은 누구인가?',d:'8화',o:8,c:null,key:true},
+    {q:'반장의 과거',d:'11화',o:11,c:null},
+    {q:'조미와 몸의 기억이 다른 이유',d:'12화',o:12,c:null},
+    {q:'다른 유체이탈자 · 귀신 · 5일 경과',d:'16화',o:16,c:null}]
+};
+const BLUE='#2457E6',GREY='#A9B1BC',INK='#141820',SUB='#5B6472',CAP='#98A1AE',LINE='#E6E9EE';
+const NS='http://www.w3.org/2000/svg',tip=document.getElementById('tip');
+function el(p,t,a,txt){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;p.appendChild(e);return e}
+function hov(n,l){n.addEventListener('mousemove',e=>{tip.textContent=l;tip.style.left=e.clientX+12+'px';tip.style.top=e.clientY+12+'px';tip.style.opacity=1});n.addEventListener('mouseleave',()=>tip.style.opacity=0)}
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+function note(id,ph){const v=(store('lab-'+id)||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');return `<div class="note"><label>내 인사이트</label><textarea data-k="${id}" placeholder="${ph}">${v}</textarea></div>`}
+function bindNotes(){document.querySelectorAll('textarea[data-k]').forEach(t=>t.addEventListener('input',()=>store('lab-'+t.dataset.k,t.value)))}
+function setMode(m){document.body.classList.toggle('insight',m==='insight');document.getElementById('mChart').classList.toggle('on',m==='chart');document.getElementById('mIns').classList.toggle('on',m==='insight');store('lab-mode',m);route()}
+const isIns=()=>document.body.classList.contains('insight');
+
+const PAGES={home:'홈',raw:'01 원본 데이터',reaction:'02 독자 반응 분석',viz:'03 데이터 시각화'};
+function tabs(cur){document.getElementById('tabs').innerHTML=Object.entries(PAGES).map(([k,v])=>`<button class="${k==='home'?'home ':''}${k===cur?'on':''}" onclick="location.hash='${k}'">${k==='home'?'← 홈':v}</button>`).join('')}
+
+function home(){return `
+  <div class="grid3">
+    <div class="card step" onclick="location.hash='raw'"><div class="go">상세 →</div><div class="no">STEP 01</div><h2>원본 데이터</h2>
+      <p>네이버웹툰 공개 화면의 회차별 지표와 인기 댓글을 손으로 옮겨 적고, 정주행하며 회차마다 리딩 로그를 남겼습니다.</p>
+      <div class="big"><div><b>20</b><span>회차 별점</span></div><div><b>90</b><span>인기 댓글</span></div><div><b>20</b><span>리딩 로그</span></div></div></div>
+    <div class="card step" onclick="location.hash='reaction'"><div class="go">상세 →</div><div class="no">STEP 02</div><h2>독자 반응 분석</h2>
+      <p>댓글을 찐팬 배지 유무로 두 독자로 나누고, 주제를 직접 읽어 분류해 공감 수를 합산했습니다.</p>
+      <div class="big"><div><b>2</b><span>독자 유형</span></div><div><b>6</b><span>주제 코드</span></div><div><b>1,450</b><span>공감 합</span></div></div></div>
+    <div class="card step" onclick="location.hash='viz'"><div class="go">상세 →</div><div class="no">STEP 03</div><h2>데이터 시각화</h2>
+      <p>별점·몰입·댓글을 같은 회차 축에 겹쳐, 세 기록이 함께 움직이는 구간과 열리고 닫힌 질문을 봅니다.</p>
+      <div class="big"><div><b>3</b><span>겹친 기록</span></div><div><b>4</b><span>차트</span></div></div></div>
+  </div>
+  <div class="flow"><i>수집</i><em>→</em><i>분류</i><em>→</em><i>같은 회차 축에 겹쳐 보기</i><em>·</em><span>내 기록은 가설을 세우는 데만, 판단은 독자 데이터로</span></div>`}
+
+function raw(){
+  const rows=D.rating.map((r,i)=>{const e=i+1,l=D.likes[e];return `<tr><td>${e}화</td><td class="${r<9?'lo':''}">${r.toFixed(2)}</td><td>${l??'–'}</td><td>${D.immerse[i]}</td><td>${D.reason[i]==='있다'?'<span class="pill">있다</span>':'<span class="pill b">일단 있다</span>'}</td></tr>`}).join('');
+  return `<div class="grid2" style="align-items:start">
+    <div class="card"><p class="ctitle">회차별 지표</p><p class="cmeta">별점·좋아요는 공개 화면, 몰입·다음 화 볼 이유는 리딩 로그</p>
+      <table><thead><tr><th>회차</th><th>평균 별점</th><th>좋아요</th><th>내 몰입(1~5)</th><th>다음 화 볼 이유</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="src">파란 숫자 = 9점 아래 · 좋아요는 11~20화만 수집 · 미리보기 21~25화 제외</div>${note('raw-table','이 표에서 눈에 띄는 회차를 적어 보세요')}</div>
+    <div class="stack">
+      <div class="card"><p class="ctitle">댓글 분류 체계</p><p class="cmeta">10~20화 인기 댓글 90개</p>
+        <table><thead><tr><th>독자 유형</th><th>기준</th><th>댓글</th></tr></thead><tbody>
+        <tr><td><span class="dot" style="background:${BLUE}"></span> 오래 본 독자</td><td>찐팬 배지 보임</td><td>52</td></tr>
+        <tr><td><span class="dot" style="background:${GREY}"></span> 일반 독자</td><td>배지 보이지 않음</td><td>37</td></tr></tbody></table>
+        <table style="margin-top:18px"><thead><tr><th>주제 코드</th><th>독자</th><th>공감 합</th></tr></thead><tbody>
+        ${D.readers.flatMap(r=>r.bars.map(([k,v])=>`<tr><td>${k}</td><td>${r.name}</td><td>${v}</td></tr>`)).join('')}</tbody></table></div>
+      <div class="card"><p class="ctitle">수집 방법</p><dl class="kv" style="margin:14px 0 0">
+        <dt>작품</dt><dd>『유체를 이탈하였습니다』 · 이슬 · 네이버웹툰 월요웹툰</dd>
+        <dt>태그</dt><dd>로맨스 · 학원로맨스 · 청춘로맨스</dd>
+        <dt>수집일</dt><dd>2026.11.6, 자동 수집 없이 직접 옮겨 적음</dd>
+        <dt>리딩 로그</dt><dd>1~20화 정주행, 회차마다 몰입·남은 질문·다음 화 볼 이유·헷갈린 점 기록</dd>
+        <dt>한계</dt><dd>인기 댓글만 봄 · 배지는 숨길 수 있음 · 리딩 로그는 1인 기록</dd></dl>${note('raw-method','수집하며 알게 된 점')}</div>
+    </div></div>`}
+
+function reaction(){
+  const max=400;
+  const who=D.readers.map((r,i)=>`<div class="card">
+    <div class="who"><div><h3><span class="dot" style="background:${r.color}"></span>${r.name}</h3><p class="cmeta" style="margin:6px 0 0">${r.sub} · 댓글 ${r.n}개 · 공감 합 ${r.sum.toLocaleString()}</p></div>
+      <div class="num" style="color:${r.color}">${r.avg}<small>평균 공감</small></div></div>
+    <div class="bars">${r.bars.map(([k,v])=>`<div class="bar"><span>${k}</span><div class="track"><div class="fill" style="width:${v/max*100}%;background:${r.color}"></div></div><b>${v}</b></div>`).join('')}</div>
+    <div class="src">막대 = 주제별 공감 수 합 · 같은 눈금(0~400)</div>${note('reader-'+i,r.name+'에 대해 읽은 것')}</div>`).join('');
+  const qs=D.quotes.map(q=>`<div class="q"><div class="top"><span>${q.ep}화 ${q.badge===true?'<span class="pill b">찐팬 배지</span>':q.badge===false?'<span class="pill">배지 없음</span>':''}</span><span class="lk">공감 <b>${q.like}</b></span></div><div class="txt">「${q.txt}」</div></div>`).join('');
+  return `<div class="grid2">${who}</div>
+    <div style="margin:32px 0 14px"><p class="ctitle">공감이 많이 모인 댓글</p><p class="cmeta" style="margin:0">원문 요지 · 닉네임 없음 · 앱 화면 직접 캡처</p></div>
+    <div class="quotes">${qs}</div><div class="card note-only" style="margin-top:26px">${note('quotes','댓글에서 보인 독자의 목소리').replace('class="note"','class="note" style="margin:0;border:0;padding:0"')}</div>`}
+
+function viz(){return `<div class="stack">
+  <div class="card"><p class="ctitle">회차 여정 맵</p><p class="cmeta">별점 · 내 몰입 · 다음 화 볼 이유를 같은 회차 축에</p><svg id="vMap" width="100%" viewBox="0 0 1240 470"></svg>${note('viz-map','세 기록이 함께 움직이는 구간은?')}</div>
+  <div class="grid2">
+    <div class="card"><p class="ctitle">회차별 평균 별점</p><p class="cmeta">1~20화</p><svg id="vRating" width="100%" viewBox="0 0 600 330"></svg>${note('viz-rating','별점에서 보인 것')}</div>
+    <div class="card"><p class="ctitle">회차별 좋아요</p><p class="cmeta">11~20화 · 최근 회차일수록 쌓인 기간이 짧음</p><svg id="vLikes" width="100%" viewBox="0 0 600 330"></svg>${note('viz-likes','좋아요에서 보인 것')}</div>
+  </div>
+  <div class="card"><p class="ctitle">질문 장부</p><p class="cmeta">리딩 로그의 '남은 질문'이 열린 회차와 닫힌 회차</p><svg id="vLedger" width="100%" viewBox="0 0 1240 420"></svg>${note('viz-ledger','열리고 닫힌 질문에서 보인 것')}</div>
+  </div>`}
+
+function drawViz(){
+  const ins=isIns();
+  // map
+  (()=>{const s=document.getElementById('vMap');const GX=150,GW=1070,cw=GW/20,cx=i=>GX+cw*(i+.5);
+    const rA=40,hA=200,Y=v=>rA+(9.85-v)/2.1*hA;
+    el(s,'text',{x:0,y:rA+hA/2,'font-size':15,'font-weight':600,fill:SUB},'평균 별점');
+    el(s,'line',{x1:GX,y1:Y(9),x2:GX+GW,y2:Y(9),stroke:'#C9D0DA','stroke-dasharray':'4 4'});
+    el(s,'text',{x:GX-10,y:Y(9)+4,'font-size':12,fill:CAP,'text-anchor':'end'},'9.0');
+    el(s,'polyline',{points:D.rating.map((v,i)=>cx(i)+','+Y(v)).join(' '),fill:'none',stroke:INK,'stroke-width':2,'stroke-linejoin':'round'});
+    D.rating.forEach((v,i)=>{const c=el(s,'circle',{cx:cx(i),cy:Y(v),r:v<9?6:4.5,fill:v<9?BLUE:INK,stroke:'#fff','stroke-width':2});hov(el(s,'circle',{cx:cx(i),cy:Y(v),r:12,fill:'transparent'}),(i+1)+'화 별점 '+v.toFixed(2))});
+    const rC=rA+hA+28;el(s,'line',{x1:GX,y1:rC,x2:GX+GW,y2:rC,stroke:LINE});
+    el(s,'text',{x:0,y:rC+34,'font-size':15,'font-weight':600,fill:SUB},'내 몰입');
+    D.immerse.forEach((m,i)=>{el(s,'circle',{cx:cx(i),cy:rC+30,r:9,fill:m===5?INK:'#fff',stroke:m===5?'none':'#C9D0DA','stroke-width':2});hov(el(s,'circle',{cx:cx(i),cy:rC+30,r:14,fill:'transparent'}),(i+1)+'화 몰입 '+m)});
+    const rD=rC+66;el(s,'line',{x1:GX,y1:rD,x2:GX+GW,y2:rD,stroke:LINE});
+    el(s,'text',{x:0,y:rD+34,'font-size':15,'font-weight':600,fill:SUB},'다음 화 볼 이유');
+    D.reason.forEach((r,i)=>{el(s,'rect',{x:cx(i)-cw/2+3,y:rD+20,width:cw-6,height:18,rx:5,fill:r==='있다'?'#DDE2E9':BLUE});hov(el(s,'rect',{x:cx(i)-cw/2,y:rD+14,width:cw,height:30,fill:'transparent'}),(i+1)+'화 '+r)});
+    const rE=rD+72;for(let i=0;i<20;i++)el(s,'text',{x:cx(i),y:rE,'font-size':12.5,fill:CAP,'text-anchor':'middle'},String(i+1));
+    el(s,'text',{x:GX+GW,y:rE+24,'font-size':12,fill:CAP,'text-anchor':'end'},'● 몰입 5  ○ 4  ·  회색 칸 = 있다 · 파란 칸 = 일단 있다  ·  파란 점 = 별점 9점 아래');
+    if(ins){el(s,'rect',{x:cx(12)-cw/2,y:rA-14,width:cw*8,height:rE-rA,fill:BLUE,opacity:.06,rx:8});
+      el(s,'text',{x:cx(12)-cw/2+8,y:rA-20,'font-size':14,'font-weight':700,fill:BLUE},'13화~');
+      el(s,'circle',{cx:cx(0),cy:rC+30,r:15,fill:'none',stroke:BLUE,'stroke-width':2});}
+  })();
+  // rating
+  (()=>{const s=document.getElementById('vRating');const GX=40,GW=550,top=20,H=250,cw=GW/20,cx=i=>GX+cw*(i+.5),Y=v=>top+(10-v)/2.5*H;
+    [8,8.5,9,9.5,10].forEach(g=>{el(s,'line',{x1:GX,y1:Y(g),x2:GX+GW,y2:Y(g),stroke:g===9?'#C9D0DA':LINE,'stroke-dasharray':g===9?'4 4':''});el(s,'text',{x:GX-8,y:Y(g)+4,'font-size':11.5,fill:CAP,'text-anchor':'end'},g.toFixed(1))});
+    el(s,'polyline',{points:D.rating.map((v,i)=>cx(i)+','+Y(v)).join(' '),fill:'none',stroke:INK,'stroke-width':2,'stroke-linejoin':'round'});
+    D.rating.forEach((v,i)=>{el(s,'circle',{cx:cx(i),cy:Y(v),r:v<9?5:4,fill:v<9?BLUE:INK,stroke:'#fff','stroke-width':1.5});hov(el(s,'circle',{cx:cx(i),cy:Y(v),r:10,fill:'transparent'}),(i+1)+'화 '+v.toFixed(2))});
+    el(s,'text',{x:cx(18),y:Y(7.88)+20,'font-size':12.5,'font-weight':700,fill:INK,'text-anchor':'middle'},'7.88');
+    [0,4,9,14,19].forEach(i=>el(s,'text',{x:cx(i),y:top+H+28,'font-size':11.5,fill:CAP,'text-anchor':'middle'},(i+1)+'화'));
+    if(ins){el(s,'line',{x1:cx(0),y1:Y(9.51),x2:cx(8),y2:Y(9.51),stroke:BLUE,'stroke-width':1.5});el(s,'text',{x:cx(4),y:top-6,'font-size':12,'font-weight':700,fill:BLUE,'text-anchor':'middle'},'1~9화 평균 9.51')}
+  })();
+  // likes
+  (()=>{const s=document.getElementById('vLikes');const GX=40,GW=550,top=20,H=250,cw=GW/10,Y=v=>top+H-(v/70)*H;
+    [0,20,40,60].forEach(g=>{el(s,'line',{x1:GX,y1:Y(g),x2:GX+GW,y2:Y(g),stroke:g===0?'#C9D0DA':LINE});el(s,'text',{x:GX-8,y:Y(g)+4,'font-size':11.5,fill:CAP,'text-anchor':'end'},g)});
+    Object.entries(D.likes).forEach(([e,v],i)=>{const x=GX+cw*i+cw*.25,w=cw*.5;const b=el(s,'path',{d:`M${x},${Y(0)}V${Y(v)+5}Q${x},${Y(v)} ${x+5},${Y(v)}H${x+w-5}Q${x+w},${Y(v)} ${x+w},${Y(v)+5}V${Y(0)}Z`,fill:(ins&&(i===0||i===9))?BLUE:'#C3CAD4'});hov(b,e+'화 좋아요 '+v);
+      el(s,'text',{x:x+w/2,y:Y(v)-8,'font-size':12.5,'font-weight':600,fill:INK,'text-anchor':'middle'},v);el(s,'text',{x:x+w/2,y:top+H+24,'font-size':11.5,fill:CAP,'text-anchor':'middle'},e+'화')});
+  })();
+  // ledger
+  (()=>{const s=document.getElementById('vLedger');const GX=360,GW=860,cw=GW/20,cx=e=>GX+cw*(e-.5);
+    for(let e=1;e<=20;e++){el(s,'line',{x1:cx(e),y1:6,x2:cx(e),y2:372,stroke:'#F0F2F5'});el(s,'text',{x:cx(e),y:398,'font-size':12,fill:CAP,'text-anchor':'middle'},e)}
+    D.ledger.forEach((r,k)=>{const y=34+k*60;
+      el(s,'text',{x:0,y:y,'font-size':15.5,'font-weight':r.key&&ins?700:600,fill:INK},r.q);
+      el(s,'text',{x:0,y:y+20,'font-size':12.5,fill:CAP},r.d+(r.c?' → '+r.c+'화':' → 20화까지 열림'));
+      const x0=cx(r.o),x1=r.c?cx(r.c):GX+GW,col=r.c?INK:(ins&&r.key?BLUE:'#B8C0CB');
+      const ln=el(s,'line',{x1:x0,y1:y-5,x2:x1,y2:y-5,stroke:col,'stroke-width':ins&&r.key?4:3,'stroke-linecap':'round'});
+      el(s,'circle',{cx:x0,cy:y-5,r:6,fill:'#fff',stroke:col,'stroke-width':2.5});
+      if(r.c){el(s,'circle',{cx:x1,cy:y-5,r:7,fill:BLUE});el(s,'text',{x:x1+12,y:y,'font-size':13,'font-weight':700,fill:BLUE},'닫힘')}
+      hov(ln,r.q);});
+    if(ins){el(s,'text',{x:cx(14),y:34+2*60-16,'font-size':13,'font-weight':700,fill:BLUE,'text-anchor':'middle'},'8화 → 20화 · 주 1회 기준 약 12주')}
+  })();
+}
+
+function route(){const h=(location.hash||'#home').slice(1);const p=PAGES[h]?h:'home';tabs(p);
+  document.getElementById('view').innerHTML={home,raw,reaction,viz}[p]();if(p==='viz')drawViz();bindNotes();window.scrollTo(0,0)}
+window.addEventListener('hashchange',route);
+if(store('lab-mode')==='insight'){document.body.classList.add('insight');document.getElementById('mChart').classList.remove('on');document.getElementById('mIns').classList.add('on')}
+route();
+</script>
+</body>
+</html>
