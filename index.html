@@ -120,7 +120,7 @@ const D={
   immerse:[5,5,5,5,4,4,5,5,5,5,4,5,4,4,5,4,4,4,4,4],
   reason:Array.from({length:20},(_,i)=>(i<12||i===14)?'있다':'일단 있다'),
   readers:[
-    {name:'오래 본 독자',sub:'찐팬 배지가 보이는 댓글',n:52,sum:1023,avg:19.7,color:'var(--blue)',hex:'#2457E6',bars:[['설정 추측·칭찬·질문',387],['캐릭터 불만',298],['로맨스',161]]},
+    {name:'찐팬 배지 독자',sub:'찐팬 배지가 보이는 댓글',n:52,sum:1023,avg:19.7,color:'var(--blue)',hex:'#2457E6',bars:[['설정 추측·칭찬·질문',387],['캐릭터 불만',298],['로맨스',161]]},
     {name:'일반 독자',sub:'배지가 보이지 않는 댓글',n:37,sum:427,avg:11.5,color:'var(--grey)',hex:'#A9B1BC',bars:[['전개 불만',123],['전개 질문',82],['설정 혼란',67]]}],
   quotes:[
     {ep:14,txt:'진짜 조미 어디 갔어',like:89,badge:true},
@@ -171,9 +171,9 @@ function raw(){
       <table><thead><tr><th>회차</th><th>평균 별점</th><th>좋아요</th><th>내 몰입(1~5)</th><th>다음 화 볼 이유</th></tr></thead><tbody>${rows}</tbody></table>
       <div class="src">파란 숫자 = 9점 아래 · 좋아요는 11~20화만 수집 · 미리보기 21~25화 제외</div>${note('raw-table','이 표에서 눈에 띄는 회차를 적어 보세요')}</div>
     <div class="stack">
-      <div class="card"><p class="ctitle">댓글 분류 체계</p><p class="cmeta">10~20화 인기 댓글 90개</p>
+      <div class="card"><p class="ctitle">댓글 분류 체계</p><p class="cmeta">10~20화 인기 댓글 90개 · 판별 불가 1개 제외, 89개 분류</p>
         <table><thead><tr><th>독자 유형</th><th>기준</th><th>댓글</th></tr></thead><tbody>
-        <tr><td><span class="dot" style="background:${BLUE}"></span> 오래 본 독자</td><td>찐팬 배지 보임</td><td>52</td></tr>
+        <tr><td><span class="dot" style="background:${BLUE}"></span> 찐팬 배지 독자</td><td>찐팬 배지 보임</td><td>52</td></tr>
         <tr><td><span class="dot" style="background:${GREY}"></span> 일반 독자</td><td>배지 보이지 않음</td><td>37</td></tr></tbody></table>
         <table style="margin-top:18px"><thead><tr><th>주제 코드</th><th>독자</th><th>공감 합</th></tr></thead><tbody>
         ${D.readers.flatMap(r=>r.bars.map(([k,v])=>`<tr><td>${k}</td><td>${r.name}</td><td>${v}</td></tr>`)).join('')}</tbody></table></div>
