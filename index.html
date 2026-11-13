@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>독자 데이터 랩</title>
 <meta name="description" content="『유체를 이탈하였습니다』 1~20화 별점·좋아요·인기 댓글과 리딩 로그를 직접 모아 같은 회차 축에 겹쳐 본 독자 데이터 분석">
+<meta property="og:type" content="website">
+<meta property="og:title" content="독자 데이터 랩 · 유체를 이탈하였습니다">
+<meta property="og:description" content="1~20화 별점·좋아요·인기 댓글 90개와 회차별 리딩 로그를 같은 회차 축에 겹쳐 본 독자 반응 분석">
+<meta property="og:url" content="https://reading-archive-ten.vercel.app/">
+<meta property="og:locale" content="ko_KR">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.min.css">
 <style>
@@ -84,6 +89,45 @@
   svg text{font-family:Pretendard,"Noto Sans KR",sans-serif}
   .tip{position:fixed;pointer-events:none;background:var(--ink);color:#fff;font-size:13px;padding:6px 10px;border-radius:8px;opacity:0;white-space:nowrap;z-index:9}
   .legend{display:flex;gap:16px;font-size:13px;color:var(--sub);margin:-6px 0 12px}
+  /* library */
+  .lib-stats{display:flex;gap:40px;margin:0 0 26px;flex-wrap:wrap}
+  .lib-stats b{display:block;font-size:30px;font-weight:800;letter-spacing:-.02em}
+  .lib-stats span{font-size:13px;color:var(--cap)}
+  .shelf{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .work{cursor:pointer;display:flex;flex-direction:column;min-height:340px;transition:transform .12s, box-shadow .12s}
+  .work:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(20,24,32,.08)}
+  .work .badge{align-self:flex-start;font-size:12.5px;font-weight:700;color:var(--blue);background:var(--blue-soft);border-radius:999px;padding:4px 10px}
+  .work h2{font-size:26px;margin:16px 0 4px;letter-spacing:-.02em}
+  .work .by{font-size:14px;color:var(--sub);margin:0}
+  .work .tags{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 0}
+  .work .tags span{font-size:12.5px;color:var(--sub);background:var(--grey-soft);border-radius:999px;padding:3px 10px}
+  .work .find{margin:22px 0 0;font-size:16px;font-weight:700;line-height:1.5}
+  .work .meta{margin-top:auto;padding-top:20px;display:flex;justify-content:space-between;align-items:flex-end;font-size:13px;color:var(--cap)}
+  .work .meta b{color:var(--ink);font-size:14px}
+  .work.soon{cursor:default;background:transparent;border:2px dashed #D5DAE1;box-shadow:none;transform:none;justify-content:center;align-items:center;text-align:center;color:var(--cap)}
+  .work.soon h2{font-size:18px;color:var(--sub);margin:8px 0 4px}
+  /* shared notes */
+  .note .ntext{margin:0;font-size:15.5px;line-height:1.6;white-space:pre-wrap}
+  .note .nbox{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .note .nf{background:var(--blue-soft);border-radius:12px;padding:12px 14px}
+  .note .nf b{display:block;font-size:12px;color:var(--blue);margin-bottom:4px;letter-spacing:.02em}
+  .note .nf textarea{min-height:64px;padding:0;background:transparent;border-radius:0;font-size:15px}
+  .note .nf.blank{background:var(--grey-soft)}
+  .find3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:20px}
+  .find3 .card b.k{display:block;font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px}
+  .find3 .card p{margin:0;font-size:16px;line-height:1.6}
+  .find3 .card p small{display:block;color:var(--cap);font-size:13px;margin-top:6px}
+  .lim{margin-top:20px} .lim ul{margin:8px 0 0;padding-left:18px;line-height:1.75;font-size:15px;color:var(--sub)}
+  .crit td:nth-child(2),.crit th:nth-child(2){text-align:left;color:var(--sub);white-space:normal}
+  [tabindex]:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+  @media (max-width:900px){.note .nbox,.find3{grid-template-columns:1fr}}
+  .note .nstat{font-size:12px;color:var(--cap);margin-top:6px}
+  .note.empty{display:none!important}
+  .card.note-only:has(.note.empty){display:none!important}
+  .ownerbar{position:fixed;right:16px;bottom:16px;background:var(--ink);color:#fff;border-radius:12px;padding:8px 10px;font-size:13px;display:flex;gap:6px;align-items:center;z-index:10}
+  .ownerbar button{border:0;background:#2B313C;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}
+  .log td,.log th{text-align:left;white-space:nowrap}
+  @media (max-width:900px){.shelf{grid-template-columns:1fr} .work{min-height:0} .work.soon{min-height:120px}}
   .legend span{display:inline-flex;align-items:center;gap:6px}
   @media (max-width:900px){.grid2,.grid3,.quotes{grid-template-columns:1fr} header{flex-direction:column;align-items:flex-start}}
   @media (max-width:600px){
@@ -100,10 +144,10 @@
   <header>
     <div>
       <div class="kicker">READING DATA LAB</div>
-      <h1>『유체를 이탈하였습니다』 독자 데이터 분석</h1>
-      <p class="lead">공개 화면에서 직접 모은 데이터 · 1~20화 · 2026.11.6 수집</p>
+      <h1 id="h1">독자 데이터 랩</h1>
+      <p class="lead" id="lead">좋아하는 작품을 회차별로 읽고, 독자 반응을 직접 모아 기록합니다</p>
     </div>
-    <div class="toggle" role="tablist" aria-label="보기 전환">
+    <div class="toggle" id="toggle" role="tablist" aria-label="보기 전환">
       <button id="mChart" class="on" onclick="setMode('chart')">데이터 차팅</button>
       <button id="mIns" onclick="setMode('insight')">인사이트</button>
     </div>
@@ -112,6 +156,7 @@
   <main id="view"></main>
 </div>
 <div class="tip" id="tip"></div>
+<script defer src="/_vercel/insights/script.js"></script>
 
 <script>
 const D={
@@ -141,28 +186,99 @@ const BLUE='#2457E6',GREY='#A9B1BC',INK='#141820',SUB='#5B6472',CAP='#98A1AE',LI
 const NS='http://www.w3.org/2000/svg',tip=document.getElementById('tip');
 function el(p,t,a,txt){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;p.appendChild(e);return e}
 function hov(n,l){n.addEventListener('mousemove',e=>{tip.textContent=l;tip.style.left=e.clientX+12+'px';tip.style.top=e.clientY+12+'px';tip.style.opacity=1});n.addEventListener('mouseleave',()=>tip.style.opacity=0)}
-function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
-function note(id,ph){const v=(store('lab-'+id)||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');return `<div class="note"><label>내 인사이트</label><textarea data-k="${id}" placeholder="${ph}">${v}</textarea></div>`}
-function bindNotes(){document.querySelectorAll('textarea[data-k]').forEach(t=>t.addEventListener('input',()=>store('lab-'+t.dataset.k,t.value)))}
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)return localStorage.removeItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+/* ── 공유 인사이트 메모: 서버(/api/notes)에 저장, 누구나 읽기, 편집은 지원자만 ── */
+const WORK='yuche';
+let NOTES={},API_OK=false,ADMIN=store('lab-admin')||'';
+const nkey=id=>WORK+':'+id;   // 예: yuche:viz-map-see
+async function loadNotes(){try{const r=await fetch('/api/notes',{cache:'no-store'});if(!r.ok)throw 0;NOTES=(await r.json()).notes||{};API_OK=true}catch(e){API_OK=false}}
+function note(id,ph){return `<div class="note" data-k="${id}" data-ph="${esc(ph)}"></div>`}
+// 인사이트는 네 칸: 보이는 것 → 왜 그럴까 → 그래서 제안 → 확인할 지표
+const NF=[['see','보이는 것'],['why','왜 그럴까'],['act','그래서 제안'],['check','확인할 지표']];
+function fillNotes(){document.querySelectorAll('.note[data-k]').forEach(n=>{
+  const k=n.dataset.k,val=f=>NOTES[nkey(k+'-'+f)]||'';
+  if(ADMIN){
+    if(!n.querySelector('textarea')){
+      n.innerHTML=`<label>내 인사이트</label><div class="nbox">${NF.map(([f,l],i)=>`<div class="nf"><b>${l}</b><textarea data-f="${f}" placeholder="${i===0?n.dataset.ph:''}">${esc(val(f))}</textarea></div>`).join('')}</div><div class="nstat">${API_OK?'입력하면 자동 저장되고, 보는 사람 화면에 바로 반영돼요':'저장소 연결 전 · 지금은 저장되지 않아요'}</div>`;
+      const st=n.querySelector('.nstat');
+      n.querySelectorAll('textarea').forEach(t=>{let tm;t.addEventListener('input',()=>{clearTimeout(tm);st.textContent='저장 중…';tm=setTimeout(()=>saveNote(k+'-'+t.dataset.f,t.value,st),700)})})}
+    else n.querySelectorAll('textarea').forEach(t=>{const v=val(t.dataset.f);if(document.activeElement!==t&&t.value!==v)t.value=v});
+    n.classList.remove('empty')}
+  else{const any=NF.some(([f])=>val(f));n.classList.toggle('empty',!any);
+    n.innerHTML=any?`<label>지원자 인사이트</label><div class="nbox">${NF.filter(([f])=>val(f)).map(([f,l])=>`<div class="nf"><b>${l}</b><p class="ntext">${esc(val(f))}</p></div>`).join('')}</div>`:''}})}
+async function saveNote(k,v,st){try{const r=await fetch('/api/notes',{method:'POST',headers:{'content-type':'application/json','x-admin-key':ADMIN},body:JSON.stringify({key:nkey(k),value:v})});
+  if(r.status===401){st.textContent='편집 키가 맞지 않아요';return}if(!r.ok)throw 0;NOTES[nkey(k)]=v;st.textContent='저장됨 · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+  catch(e){st.textContent='저장 실패 · 잠시 뒤 다시 입력해 주세요'}}
+function bindNotes(){fillNotes()}
+// 실시간 반영: 인사이트 보기일 때 5초마다 새 메모를 가져와 화면을 갱신
+setInterval(async()=>{if(document.hidden||!isIns()||!document.querySelector('.note[data-k]'))return;await loadNotes();fillNotes()},5000);
+
+/* ── 편집 모드: 주소 끝에 ?edit 를 붙여 열면 편집 키를 묻습니다 ── */
+async function unlock(){const k=prompt('편집 키를 입력해 주세요');if(!k)return;
+  try{const r=await fetch('/api/notes',{method:'POST',headers:{'content-type':'application/json','x-admin-key':k},body:JSON.stringify({check:true})});
+    if(r.ok){ADMIN=k;store('lab-admin',k);ownerBar();route()}else alert('편집 키가 맞지 않아요')}catch(e){alert('저장소에 연결하지 못했어요')}}
+function lock(){ADMIN='';store('lab-admin',null);ownerBar();route()}
+function ownerBar(){let b=document.getElementById('ownerbar');if(!ADMIN){b&&b.remove();return}
+  if(!b){b=document.createElement('div');b.id='ownerbar';b.className='ownerbar';document.body.appendChild(b)}
+  b.innerHTML=`<span>편집 모드</span><button onclick="location.hash='log'">방문 기록</button><button onclick="lock()">나가기</button>`}
+
+/* ── 방문 기록: 페이지를 열 때 한 번 남깁니다(이름·IP는 저장하지 않음) ── */
+function logVisit(){try{if(ADMIN)return;fetch('/api/visit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:location.hash||'#',ref:document.referrer||''}),keepalive:true})}catch(e){}}
+async function logPage(){if(!ADMIN)return `<div class="card"><p class="ctitle">방문 기록</p><p class="cmeta">편집 모드에서만 볼 수 있어요</p></div>`;
+  let rows=[];try{const r=await fetch('/api/visit',{headers:{'x-admin-key':ADMIN},cache:'no-store'});rows=(await r.json()).visits||[]}catch(e){}
+  const tr=rows.map(v=>`<tr><td>${new Date(v.t).toLocaleString('ko-KR')}</td><td>${esc(v.country||'')}${v.city?' · '+esc(decodeURIComponent(v.city)):''}</td><td>${esc(v.device||'')}</td><td>${esc(v.path||'')}</td><td>${esc(v.ref||'직접 접속')}</td></tr>`).join('');
+  return `<div class="card log"><p class="ctitle">방문 기록</p><p class="cmeta">최근 ${rows.length}건 · 시간·지역(도시 단위)·기기·처음 연 화면·들어온 곳만 남깁니다. 누가 봤는지는 알 수 없어요</p>
+    <div style="overflow-x:auto"><table><thead><tr><th>시간</th><th>지역</th><th>기기</th><th>화면</th><th>들어온 곳</th></tr></thead><tbody>${tr||'<tr><td colspan="5">아직 기록이 없어요</td></tr>'}</tbody></table></div></div>`}
+
 function setMode(m){document.body.classList.toggle('insight',m==='insight');document.getElementById('mChart').classList.toggle('on',m==='chart');document.getElementById('mIns').classList.toggle('on',m==='insight');store('lab-mode',m);route()}
 const isIns=()=>document.body.classList.contains('insight');
 
-const PAGES={home:'홈',raw:'01 원본 데이터',reaction:'02 독자 반응 분석',viz:'03 데이터 시각화'};
-function tabs(cur){document.getElementById('tabs').innerHTML=Object.entries(PAGES).map(([k,v])=>`<button class="${k==='home'?'home ':''}${k===cur?'on':''}" onclick="location.hash='${k}'">${k==='home'?'← 홈':v}</button>`).join('')}
+const PAGES={home:'개요',raw:'01 원본 데이터',reaction:'02 독자 반응 분석',viz:'03 데이터 시각화'};
+function tabs(cur){document.getElementById('tabs').innerHTML=`<button class="home" onclick="location.hash=''">← 작품 목록</button>`+Object.entries(PAGES).map(([k,v])=>`<button class="${k===cur?'on':''}" onclick="location.hash='${WORK}/${k}'">${v}</button>`).join('')}
+
+function library(){return `
+  <div class="lib-stats"><div><b>1</b><span>분석한 작품</span></div><div><b>20</b><span>기록한 회차</span></div><div><b>89</b><span>분류한 인기 댓글</span></div></div>
+  <div class="shelf">
+    <div class="card work" tabindex="0" role="link" onclick="location.hash='${WORK}/home'">
+      <span class="badge">분석 완료 · 2026.11</span>
+      <h2>유체를 이탈하였습니다</h2>
+      <p class="by">이슬 · 네이버웹툰 월요웹툰</p>
+      <div class="tags"><span>로맨스</span><span>학원로맨스</span><span>청춘로맨스</span></div>
+      <p class="find">태그는 모두 로맨스인데,<br>독자를 붙잡는 건 정체 미스터리</p>
+      <div class="meta"><span>1~20화 · 인기 댓글 90개 · 리딩 로그 20회</span><b>분석 보기 →</b></div>
+    </div>
+    <div class="card work soon"><span>NEXT</span><h2>다음 작품</h2><p class="by">분석 준비 중</p></div>
+    <div class="card work soon"><span>NEXT</span><h2>다음 작품</h2><p class="by">분석 준비 중</p></div>
+  </div>
+  <div class="flow"><i>작품 고르기</i><em>→</em><i>회차별로 읽고 기록</i><em>→</em><i>독자 반응 모으기</i><em>→</em><i>같은 회차 축에 겹쳐 보기</i></div>`}
 
 function home(){return `
   <div class="grid3">
-    <div class="card step" onclick="location.hash='raw'"><div class="go">상세 →</div><div class="no">STEP 01</div><h2>원본 데이터</h2>
+    <div class="card step" tabindex="0" role="link" onclick="location.hash='${WORK}/raw'"><div class="go">상세 →</div><div class="no">STEP 01</div><h2>원본 데이터</h2>
       <p>네이버웹툰 공개 화면의 회차별 지표와 인기 댓글을 손으로 옮겨 적고, 정주행하며 회차마다 리딩 로그를 남겼습니다.</p>
       <div class="big"><div><b>20</b><span>회차 별점</span></div><div><b>90</b><span>인기 댓글</span></div><div><b>20</b><span>리딩 로그</span></div></div></div>
-    <div class="card step" onclick="location.hash='reaction'"><div class="go">상세 →</div><div class="no">STEP 02</div><h2>독자 반응 분석</h2>
+    <div class="card step" tabindex="0" role="link" onclick="location.hash='${WORK}/reaction'"><div class="go">상세 →</div><div class="no">STEP 02</div><h2>독자 반응 분석</h2>
       <p>댓글을 찐팬 배지 유무로 두 독자로 나누고, 주제를 직접 읽어 분류해 공감 수를 합산했습니다.</p>
       <div class="big"><div><b>2</b><span>독자 유형</span></div><div><b>6</b><span>주제 코드</span></div><div><b>1,450</b><span>공감 합</span></div></div></div>
-    <div class="card step" onclick="location.hash='viz'"><div class="go">상세 →</div><div class="no">STEP 03</div><h2>데이터 시각화</h2>
+    <div class="card step" tabindex="0" role="link" onclick="location.hash='${WORK}/viz'"><div class="go">상세 →</div><div class="no">STEP 03</div><h2>데이터 시각화</h2>
       <p>별점·몰입·댓글을 같은 회차 축에 겹쳐, 세 기록이 함께 움직이는 구간과 열리고 닫힌 질문을 봅니다.</p>
       <div class="big"><div><b>3</b><span>겹친 기록</span></div><div><b>4</b><span>차트</span></div></div></div>
   </div>
-  <div class="flow"><i>수집</i><em>→</em><i>분류</i><em>→</em><i>같은 회차 축에 겹쳐 보기</i><em>·</em><span>내 기록은 가설을 세우는 데만, 판단은 독자 데이터로</span></div>`}
+  <div class="flow"><i>수집</i><em>→</em><i>분류</i><em>→</em><i>같은 회차 축에 겹쳐 보기</i><em>·</em><span>내 기록은 가설을 세우는 데만, 판단은 독자 데이터로</span></div>
+  <div style="margin:36px 0 0"><p class="ctitle">데이터에서 보이는 것</p><p class="cmeta" style="margin:0">해석과 제안은 인사이트 보기에서 지원자가 직접 적습니다</p></div>
+  <div class="find3">
+    <div class="card"><b class="k">10화부터</b><p>별점이 흔들리기 시작했습니다<small>1~9화 평균 9.51 → 10~20화 평균 8.86 · 10~20화 11회 중 7회 9점 아래 · 최저 19화 7.88</small></p></div>
+    <div class="card"><b class="k">13화부터</b><p>리딩 로그의 '다음 화 볼 이유'가 '일단 있다'로 약해졌습니다<small>1~12화 '있다' → 13화부터 '일단 있다'(15화만 '있다') · 몰입 평균 1~10화 4.8 → 11~20화 4.2</small></p></div>
+    <div class="card"><b class="k">8화 → 20화</b><p>'몸속의 사람은 누구인가' 질문이 20화까지 열려 있습니다<small>주 1회 연재 기준 약 12주 · 다른 질문에 답이 나온 15화에 댓글이 가장 많음(28개)</small></p></div>
+  </div>
+  <div class="card lim"><p class="ctitle">이 분석이 보지 못한 것과 다음 단계</p>
+    <ul><li><b>열성 독자 기준</b>입니다. 인기 댓글만 봐서, 조용히 떠난 독자의 이유는 알 수 없습니다.</li>
+      <li><b>조회수·회차별 이탈률</b>은 공개되지 않아 쓰지 못했습니다. 담당자가 되면 가장 먼저 확인하고 싶은 지표입니다.</li>
+      <li>공감 <b>합계</b>는 공감이 많은 댓글 몇 개에 크게 좌우될 수 있어, 독자 유형별 <b>평균 공감</b>을 함께 봤습니다.</li>
+      <li>제안 뒤에는 <b>부분 회수 회차의 별점·좋아요 하락 폭</b>, <b>댓글 중 질문·혼란의 비율</b>, <b>미스터리 태그 추가 뒤 관심 수 변화</b>로 효과를 확인하려 합니다.</li></ul>
+    ${note('overview','이 작품에서 가장 먼저 바꾸고 싶은 것')}</div>`}
 
 function raw(){
   const rows=D.rating.map((r,i)=>{const e=i+1,l=D.likes[e];return `<tr><td>${e}화</td><td class="${r<9?'lo':''}">${r.toFixed(2)}</td><td>${l??'–'}</td><td>${D.immerse[i]}</td><td>${D.reason[i]==='있다'?'<span class="pill">있다</span>':'<span class="pill b">일단 있다</span>'}</td></tr>`}).join('');
@@ -178,8 +294,9 @@ function raw(){
         <table style="margin-top:18px"><thead><tr><th>주제 코드</th><th>독자</th><th>공감 합</th></tr></thead><tbody>
         ${D.readers.flatMap(r=>r.bars.map(([k,v])=>`<tr><td>${k}</td><td>${r.name}</td><td>${v}</td></tr>`)).join('')}</tbody></table></div>
       <div class="card"><p class="ctitle">수집 방법</p><dl class="kv" style="margin:14px 0 0">
-        <dt>작품</dt><dd>『유체를 이탈하였습니다』 · 이슬 · 네이버웹툰 월요웹툰</dd>
+        <dt>작품</dt><dd>유체를 이탈하였습니다 · 이슬 · 네이버웹툰 월요웹툰</dd>
         <dt>태그</dt><dd>로맨스 · 학원로맨스 · 청춘로맨스</dd>
+        <dt>위치</dt><dd>관심 3,628 · 월요웹툰 인기순 123작품 중 123위 (2026.11.6)</dd>
         <dt>수집일</dt><dd>2026.11.6, 자동 수집 없이 직접 옮겨 적음</dd>
         <dt>리딩 로그</dt><dd>1~20화 정주행, 회차마다 몰입·남은 질문·다음 화 볼 이유·헷갈린 점 기록</dd>
         <dt>한계</dt><dd>인기 댓글만 봄 · 배지는 숨길 수 있음 · 리딩 로그는 1인 기록</dd></dl>${note('raw-method','수집하며 알게 된 점')}</div>
@@ -194,16 +311,34 @@ function reaction(){
     <div class="src">막대 = 주제별 공감 수 합 · 같은 눈금(0~400)</div>${note('reader-'+i,r.name+'에 대해 읽은 것')}</div>`).join('');
   const qs=D.quotes.map(q=>`<div class="q"><div class="top"><span>${q.ep}화 ${q.badge===true?'<span class="pill b">찐팬 배지</span>':q.badge===false?'<span class="pill">배지 없음</span>':''}</span><span class="lk">공감 <b>${q.like}</b></span></div><div class="txt">「${q.txt}」</div></div>`).join('');
   return `<div class="grid2">${who}</div>
+    <div class="grid2" style="margin-top:20px;align-items:start">
+      <div class="card"><p class="ctitle">주제 분류 기준</p><p class="cmeta">댓글을 직접 읽고 하나의 주제로 분류 · 1인 분류라 기준을 공개합니다</p>
+        <table class="crit"><thead><tr><th>주제</th><th>이런 댓글</th></tr></thead><tbody>
+          <tr><td>설정 추측·칭찬·질문</td><td>인물의 정체나 세계관을 추측·질문하거나 작품을 칭찬</td></tr>
+          <tr><td>캐릭터 불만</td><td>특정 인물의 말과 행동이 답답하거나 싫다는 반응</td></tr>
+          <tr><td>로맨스</td><td>인물 사이의 관계·설렘에 대한 반응</td></tr>
+          <tr><td>전개 불만</td><td>이야기가 늦거나 늘어진다, 떡밥 회수가 늦다는 반응</td></tr>
+          <tr><td>전개 질문</td><td>다음에 무슨 일이 일어나는지 묻는 반응</td></tr>
+          <tr><td>설정 혼란</td><td>설정과 상황이 헷갈린다는 반응</td></tr></tbody></table></div>
+      <div class="card"><p class="ctitle">숫자를 읽을 때</p><p class="cmeta">합계만 보면 생기는 착시를 줄이기 위해 함께 본 숫자</p>
+        <dl class="kv" style="margin:6px 0 0">
+          <dt>평균 공감</dt><dd>찐팬 배지 독자 19.7 · 일반 독자 11.5 (댓글 52개 · 37개)</dd>
+          <dt>최다 댓글 회차</dt><dd>15화 28개 · 7화에 열린 '다른 사람이 들어왔나'에 답이 나온 회차</dd>
+          <dt>최다 공감 댓글</dt><dd>14화 「진짜 조미 어디 갔어」 89</dd>
+          <dt>로맨스 언급</dt><dd>일반 독자 댓글 37개 중 2개</dd>
+          <dt>반복된 말</dt><dd>「재밌는데 왜 안 뜨지」류 8번</dd></dl>
+        <div class="src">주제별 댓글 수·중간값은 원본 댓글 표를 다시 정리한 뒤 추가할 예정입니다</div></div>
+    </div>
     <div style="margin:32px 0 14px"><p class="ctitle">공감이 많이 모인 댓글</p><p class="cmeta" style="margin:0">원문 요지 · 닉네임 없음 · 앱 화면 직접 캡처</p></div>
     <div class="quotes">${qs}</div><div class="card note-only" style="margin-top:26px">${note('quotes','댓글에서 보인 독자의 목소리').replace('class="note"','class="note" style="margin:0;border:0;padding:0"')}</div>`}
 
 function viz(){return `<div class="stack">
-  <div class="card"><p class="ctitle">회차 여정 맵</p><p class="cmeta">별점 · 내 몰입 · 다음 화 볼 이유를 같은 회차 축에</p><svg id="vMap" width="100%" viewBox="0 0 1240 470"></svg>${note('viz-map','세 기록이 함께 움직이는 구간은?')}</div>
+  <div class="card"><p class="ctitle">회차 여정 맵</p><p class="cmeta">별점 · 내 몰입 · 다음 화 볼 이유를 같은 회차 축에</p><svg id="vMap" role="img" aria-label="1~20화 평균 별점, 내 몰입, 다음 화 볼 이유를 같은 회차 축에 겹친 차트. 10화부터 별점이 9점 아래로 자주 떨어지고 13화부터 다음 화 볼 이유가 일단 있다로 바뀜" width="100%" viewBox="0 0 1240 470"></svg>${note('viz-map','세 기록이 함께 움직이는 구간은?')}</div>
   <div class="grid2">
-    <div class="card"><p class="ctitle">회차별 평균 별점</p><p class="cmeta">1~20화</p><svg id="vRating" width="100%" viewBox="0 0 600 330"></svg>${note('viz-rating','별점에서 보인 것')}</div>
-    <div class="card"><p class="ctitle">회차별 좋아요</p><p class="cmeta">11~20화 · 최근 회차일수록 쌓인 기간이 짧음</p><svg id="vLikes" width="100%" viewBox="0 0 600 330"></svg>${note('viz-likes','좋아요에서 보인 것')}</div>
+    <div class="card"><p class="ctitle">회차별 평균 별점</p><p class="cmeta">1~20화</p><svg id="vRating" role="img" aria-label="회차별 평균 별점 꺾은선. 1~9화 평균 9.51, 10~20화 평균 8.86, 최저 19화 7.88" width="100%" viewBox="0 0 600 330"></svg>${note('viz-rating','별점에서 보인 것')}</div>
+    <div class="card"><p class="ctitle">회차별 좋아요</p><p class="cmeta">11~20화 · 최근 회차일수록 쌓인 기간이 짧음</p><svg id="vLikes" role="img" aria-label="11~20화 좋아요 막대. 58에서 29로 줄어듦, 최근 회차일수록 쌓인 기간이 짧음" width="100%" viewBox="0 0 600 330"></svg>${note('viz-likes','좋아요에서 보인 것')}</div>
   </div>
-  <div class="card"><p class="ctitle">질문 장부</p><p class="cmeta">리딩 로그의 '남은 질문'이 열린 회차와 닫힌 회차</p><svg id="vLedger" width="100%" viewBox="0 0 1240 420"></svg>${note('viz-ledger','열리고 닫힌 질문에서 보인 것')}</div>
+  <div class="card"><p class="ctitle">질문 장부</p><p class="cmeta">리딩 로그의 '남은 질문'이 열린 회차와 닫힌 회차</p><svg id="vLedger" role="img" aria-label="리딩 로그의 남은 질문이 열리고 닫힌 회차. 8화에 열린 몸속의 사람은 누구인가 질문은 20화까지 열림" width="100%" viewBox="0 0 1240 420"></svg>${note('viz-ledger','열리고 닫힌 질문에서 보인 것')}</div>
   </div>`}
 
 function drawViz(){
@@ -224,8 +359,10 @@ function drawViz(){
     D.reason.forEach((r,i)=>{el(s,'rect',{x:cx(i)-cw/2+3,y:rD+20,width:cw-6,height:18,rx:5,fill:r==='있다'?'#DDE2E9':BLUE});hov(el(s,'rect',{x:cx(i)-cw/2,y:rD+14,width:cw,height:30,fill:'transparent'}),(i+1)+'화 '+r)});
     const rE=rD+72;for(let i=0;i<20;i++)el(s,'text',{x:cx(i),y:rE,'font-size':12.5,fill:CAP,'text-anchor':'middle'},String(i+1));
     el(s,'text',{x:GX+GW,y:rE+24,'font-size':12,fill:CAP,'text-anchor':'end'},'● 몰입 5  ○ 4  ·  회색 칸 = 있다 · 파란 칸 = 일단 있다  ·  파란 점 = 별점 9점 아래');
-    if(ins){el(s,'rect',{x:cx(12)-cw/2,y:rA-14,width:cw*8,height:rE-rA,fill:BLUE,opacity:.06,rx:8});
-      el(s,'text',{x:cx(12)-cw/2+8,y:rA-20,'font-size':14,'font-weight':700,fill:BLUE},'13화~');
+    if(ins){el(s,'rect',{x:cx(9)-cw/2,y:rA-14,width:cw*11,height:hA+20,fill:BLUE,opacity:.05,rx:8});
+      el(s,'text',{x:cx(9)-cw/2+8,y:rA-20,'font-size':14,'font-weight':700,fill:BLUE},'10화~ 별점 흔들림');
+      el(s,'rect',{x:cx(12)-cw/2,y:rD+8,width:cw*8,height:40,fill:'none',stroke:BLUE,'stroke-width':2,rx:8});
+      el(s,'text',{x:cx(12)-cw/2+4,y:rD+2,'font-size':12.5,'font-weight':700,fill:BLUE},'13화~ 다음 화 볼 이유 약해짐');
       el(s,'circle',{cx:cx(0),cy:rC+30,r:15,fill:'none',stroke:BLUE,'stroke-width':2});}
   })();
   // rating
@@ -235,7 +372,8 @@ function drawViz(){
     D.rating.forEach((v,i)=>{el(s,'circle',{cx:cx(i),cy:Y(v),r:v<9?5:4,fill:v<9?BLUE:INK,stroke:'#fff','stroke-width':1.5});hov(el(s,'circle',{cx:cx(i),cy:Y(v),r:10,fill:'transparent'}),(i+1)+'화 '+v.toFixed(2))});
     el(s,'text',{x:cx(18),y:Y(7.88)+20,'font-size':12.5,'font-weight':700,fill:INK,'text-anchor':'middle'},'7.88');
     [0,4,9,14,19].forEach(i=>el(s,'text',{x:cx(i),y:top+H+28,'font-size':11.5,fill:CAP,'text-anchor':'middle'},(i+1)+'화'));
-    if(ins){el(s,'line',{x1:cx(0),y1:Y(9.51),x2:cx(8),y2:Y(9.51),stroke:BLUE,'stroke-width':1.5});el(s,'text',{x:cx(4),y:top-6,'font-size':12,'font-weight':700,fill:BLUE,'text-anchor':'middle'},'1~9화 평균 9.51')}
+    if(ins){el(s,'line',{x1:cx(0),y1:Y(9.51),x2:cx(8),y2:Y(9.51),stroke:BLUE,'stroke-width':1.5});el(s,'text',{x:cx(4),y:top-6,'font-size':12,'font-weight':700,fill:BLUE,'text-anchor':'middle'},'1~9화 평균 9.51');
+      el(s,'line',{x1:cx(9),y1:Y(8.86),x2:cx(19),y2:Y(8.86),stroke:BLUE,'stroke-width':1.5,'stroke-dasharray':'5 4'});el(s,'text',{x:cx(14),y:Y(8.86)-8,'font-size':12,'font-weight':700,fill:BLUE,'text-anchor':'middle'},'10~20화 평균 8.86')}
   })();
   // likes
   (()=>{const s=document.getElementById('vLikes');const GX=40,GW=550,top=20,H=250,cw=GW/10,Y=v=>top+H-(v/70)*H;
@@ -258,11 +396,21 @@ function drawViz(){
   })();
 }
 
-function route(){const h=(location.hash||'#home').slice(1);const p=PAGES[h]?h:'home';tabs(p);
-  document.getElementById('view').innerHTML={home,raw,reaction,viz}[p]();if(p==='viz')drawViz();bindNotes();window.scrollTo(0,0)}
+const OLD={home:1,raw:1,reaction:1,viz:1};
+function head(t,l,showToggle){document.getElementById('h1').textContent=t;document.getElementById('lead').textContent=l;document.getElementById('toggle').style.display=showToggle?'':'none'}
+async function route(){let h=(location.hash||'').slice(1);
+  if(OLD[h]){location.replace('#'+WORK+'/'+h);return}            // 예전 주소(#raw 등) 호환
+  const v=document.getElementById('view'),t=document.getElementById('tabs');
+  if(h==='log'){head('방문 기록','데이터 랩을 연 기록',false);t.innerHTML=`<button class="home" onclick="location.hash=''">← 작품 목록</button>`;v.innerHTML=await logPage();return}
+  const [w,p0]=h.split('/');
+  if(w!==WORK){head('독자 데이터 랩','좋아하는 작품을 회차별로 읽고, 독자 반응을 직접 모아 기록합니다',false);t.innerHTML='';v.innerHTML=library();window.scrollTo(0,0);return}
+  const p=PAGES[p0]?p0:'home';tabs(p);head('유체를 이탈하였습니다 · 독자 데이터 분석','이슬 · 네이버웹툰 월요웹툰 · 공개 화면에서 직접 모은 데이터 · 1~20화 · 2026.11.6 수집',true);
+  v.innerHTML={home,raw,reaction,viz}[p]();if(p==='viz')drawViz();bindNotes();window.scrollTo(0,0)}
 window.addEventListener('hashchange',route);
+document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=link][tabindex]')){e.preventDefault();e.target.click()}});
 if(store('lab-mode')==='insight'){document.body.classList.add('insight');document.getElementById('mChart').classList.remove('on');document.getElementById('mIns').classList.add('on')}
-route();
+(async()=>{if(new URLSearchParams(location.search).has('edit')&&!ADMIN){history.replaceState(null,'',location.pathname+location.hash);await unlock()}
+  ownerBar();await loadNotes();route();logVisit()})();
 </script>
 </body>
 </html>
