@@ -13,7 +13,7 @@
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.min.css">
 <style>
-:root{--bg:#F3F5F8;--card:#FFFFFF;--ink:#141820;--sub:#5B6472;--cap:#98A1AE;--line:#E6E9EE;--blue:#2457E6;--blue-soft:#E9EFFD;--grey-soft:#EEF0F3;--danger:#B42318}
+:root{--bg:#F3F5F8;--card:#FFFFFF;--ink:#141820;--sub:#5B6472;--cap:#98A1AE;--line:#E6E9EE;--blue:#00A04D;--blue-soft:#E7F7EE;--grey-soft:#EEF0F3;--danger:#B42318}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:Pretendard,"Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-x:clip}
 button,input,textarea,select{font:inherit;color:inherit}
@@ -29,7 +29,7 @@ h1{font-size:30px;margin:6px 0 6px;letter-spacing:-.02em}
 .btn{border:0;background:var(--card);border-radius:10px;padding:10px 16px;font-size:14px;font-weight:600;color:var(--ink);box-shadow:0 0 0 1px var(--line) inset}
 .btn:hover{background:#F8F9FB}
 .btn.primary{background:var(--blue);color:#fff;box-shadow:none}
-.btn.primary:hover{background:#1D49C4}
+.btn.primary:hover{background:#008C43}
 .btn.sm{padding:6px 11px;font-size:13px;border-radius:8px}
 .btn.danger{color:var(--danger)}
 .card{background:var(--card);border-radius:18px;padding:26px 28px}
@@ -112,6 +112,18 @@ ul.list{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
 .qrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
 .qrow:last-child{border-bottom:0}
 
+.crit{display:grid;gap:0}
+.crow{border-top:1px solid var(--line);padding:16px 0;display:grid;grid-template-columns:190px repeat(4,minmax(0,1fr));gap:12px;align-items:stretch}
+.crow:first-child{border-top:0;padding-top:4px}
+.crow h4{margin:0;font-size:15px;line-height:1.45;letter-spacing:-.01em}
+.crow h4 .cn{display:block;font-size:12px;color:var(--blue);margin-bottom:4px}
+.cb{border-radius:10px;padding:11px 13px;font-size:14px;line-height:1.6}
+.cb b{display:block;font-size:12px;margin-bottom:4px;letter-spacing:.01em}
+.cb.fact{background:#F6F7F9}.cb.fact b{color:var(--sub)}
+.cb.interp{border:1.5px dashed #C9D0DA}.cb.interp b{color:var(--sub)}
+.cb.judge{background:var(--ink);color:#fff}.cb.judge b{color:#7BE3A8}
+.cb.ask{background:var(--blue-soft)}.cb.ask b{color:var(--blue)}
+@media (max-width:900px){.crow{grid-template-columns:1fr}}
 /* drawer */
 .scrim{position:fixed;inset:0;background:rgba(20,24,32,.3);opacity:0;pointer-events:none;transition:opacity .15s;z-index:20}
 .scrim.on{opacity:1;pointer-events:auto}
@@ -181,7 +193,15 @@ const PURPOSE={
   discovery:{q:'정식 연재로 발전시킬 매력이 있는가?',focus:'첫 화 후킹 · 캐릭터 · 장기 서사 가능성',next:'추가 원고 검토 · 작가 미팅 제안'},
   serial:{q:'작품의 매력을 어떻게 더 잘 전달할까?',focus:'회차별 반응 · 전개 · 독자 기대',next:'원고 피드백 · 패키징 개선 논의'}};
 const STATUS=['검토 예정','검토 중','검토 완료','보류'];
-const EMPTY_REVIEW=()=>({charm:'',hook:'',intentMine:'',intentAuthor:'',intentSource:'',ask:'',strengths:'',gaps:'',nextQ:''});
+// 작품 검토 기준: 관찰한 사실 -> 나의 해석 -> 검토 판단 -> 추가로 확인할 질문
+const CRIT_NAMES=['소재 차별성과 타깃 독자','초반 후킹력과 다음 화를 읽게 하는 동기','캐릭터의 매력과 관계성','서사 전개와 연재 지속 가능성'];
+const EMPTY_CRITERIA=()=>CRIT_NAMES.map(name=>({name,fact:'',interp:'',judge:'',ask:''}));
+const EMPTY_REVIEW=()=>({charm:'',hook:'',intentMine:'',intentAuthor:'',intentSource:'',ask:'',strengths:'',gaps:'',nextQ:'',criteria:EMPTY_CRITERIA()});
+const SEED_CRITERIA=()=>[
+  {name:CRIT_NAMES[0],fact:'태그 3개가 모두 로맨스다 (#로맨스 #학원로맨스 #청춘로맨스). 공감이 가장 많은 댓글 2개는 정체를 추리하는 내용이다.',interp:"학원 로맨스에 '몸속에 누가 있나'라는 미스터리가 겹친 것이 이 작품만의 결합이다.",judge:'차별점은 있다. 다만 지금의 첫인상은 로맨스를 찾는 독자에게만 맞춰져 있다.',ask:'미스터리를 좋아하는 독자에게도 닿으려면 무엇을 먼저 보여 줘야 할까?'},
+  {name:CRIT_NAMES[1],fact:"1~4화에 질문 3개, 7화와 8화에 정체에 관한 질문이 열렸다. 1~12화 내내 '다음 화 볼 이유'가 있었다 (내 리딩 로그).",interp:'질문을 빠르게 여는 설계가 다음 화를 누르게 만든다.',judge:'초반 후킹은 강점이다. 1인 기록이라 다른 독자 반응으로 더 확인해야 한다.',ask:'1~3화만 읽은 독자도 같은 질문을 품을까?'},
+  {name:CRIT_NAMES[2],fact:'공식 소개글의 축은 조미, 짝사랑 상대 도윤, 돈으로 움직이는 수지다. 공감이 많은 댓글은 인물 관계보다 정체 추리에 모였다.',interp:"수지와 조미의 '내 몸 찾기' 관계가 미스터리를 끌고 가는 축일 수 있다 (가설).",judge:'관계성의 매력은 아직 판단할 근거가 부족하다. 회차별로 더 기록할 부분이다.',ask:'도윤의 비밀은 언제, 어떤 방식으로 드러날 계획일까?'},
+  {name:CRIT_NAMES[3],fact:'8화에 열린 핵심 질문이 20화까지 열려 있다 (내 리딩 로그). 질문이 쌓인 12화에는 혼란스럽다는 댓글이, 답이 나온 15화에는 가장 많은 댓글이 달렸다.',interp:'작은 답이 늦어지면 흔들리고, 답이 오면 반응이 돌아온다.',judge:'긴 연재를 끌고 갈 질문은 충분하다. 답을 주는 호흡이 보완할 지점이다.',ask:'핵심 비밀을 지키면서 먼저 풀어도 되는 작은 답은 무엇일까?'}];
 
 /* ── 기본 데이터: 『유체를 이탈하였습니다』 (2026.11.6 수집 값 그대로 · 감상 칸은 비워 둠) ── */
 function seed(){
@@ -189,23 +209,24 @@ function seed(){
   const likes={11:58,12:54,13:53,14:46,15:54,16:48,17:45,18:39,19:33,20:29};
   const comments={11:21,12:20,13:23,14:21,15:28,16:14,17:12,18:21,19:17,20:14};
   const immerse=[5,5,5,5,4,4,5,5,5,5,4,5,4,4,5,4,4,4,4,4];
-  const q={1:'잠옷 차림 · 학교 밖 · 유체가 보이는 이유',7:'몸에 다른 사람이 들어왔나?',8:'몸속의 사람은 누구인가?',11:'반장의 과거',12:'조미와 몸의 기억이 다른 이유',16:'다른 유체이탈자 · 귀신 · 5일 경과'};
+  const q={1:'잠옷 차림, 학교 밖, 유체가 보이는 이유',7:'몸에 다른 사람이 들어왔나?',8:'몸속의 사람은 누구인가?',11:'반장의 과거',12:'조미와 몸의 기억이 다른 이유',16:'다른 유체이탈자, 귀신, 5일 경과'};
   const memo={15:'7화 질문에 답이 나옴',19:'공개 별점은 11.14 화면에서 7.78',20:'공개 별점은 11.14 화면에서 8.29'};
-  const quote={12:'「내용이 너무 혼란스럽다」 67 · 「조미 몸에 있는 녀석 너 누구야, 궁금해」 48',13:'「재밌는데 왜 안 뜨는지 모르겠다」 20',14:'「진짜 조미 어디 갔어」 89',15:'「역시 자아가 다른 사람이었어」 83',18:'「떡밥만 계속 늘고 회수는 언제 되나요」 22'};
+  const quote={12:'"내용이 너무 혼란스럽다" 67 / "조미 몸에 있는 녀석 너 누구야, 궁금해" 48',13:'"재밌는데 왜 안 뜨는지 모르겠다" 20',14:'"진짜 조미 어디 갔어" 89',15:'"역시 자아가 다른 사람이었어" 83',18:'"떡밥만 계속 늘고 회수는 언제 되나요" 22'};
   const logs=rating.map((r,i)=>{const ep=i+1;return {id:'e'+ep,ep,myStar:immerse[i],good:'',bad:'',question:q[ep]||'',next:(ep<=12||ep===15)?'있다':'일단 있다',memo:memo[ep]||'',pubRating:r,likes:likes[ep]??null,comments:comments[ep]??null,quote:quote[ep]||'',intentMine:'',intentAuthor:'',intentSource:''}});
   return {works:[{id:'yuche',track:'serial',status:'검토 중',title:'유체를 이탈하였습니다',author:'이슬',platform:'네이버웹툰 · 월요웹툰',
     tags:['로맨스','학원로맨스','청춘로맨스'],
     intro:"소심한 아싸 오조미, 장난처럼 시작한 유체이탈에 성공한다. 이곳저곳 떠돌다 도착한 학교에서 짝사랑 상대인 도윤의 은밀한 비밀을 관람(?)하게 되는데...! 그 충격이 가시기도 전에 학교에 갇혀 버렸다는 것을 깨닫는다. 누군가의 도움이 절실한 상황, 때마침 그 '누군가'가 조미를 발견한다. 바로 같은 반 친구 돈에 미친XX, 돈미새 '구수지'. 과연 조미는 몸도 사랑도 되찾을 수 있을까? 돈으로 움직이는 수지와 그런 수지밖에 없는 조미의 우당탕 쿵탕 내 몸 찾기 프로젝트!",
-    source:'공개 화면 직접 기록 · 2026.11.6 수집 (작품 홈 2026.11.12) · 관심 3,623',
+    source:'공개 화면 직접 기록, 2026.11.6 수집 (작품 홈 2026.11.12), 관심 3,623',
     first:{pick:'',risk:'',expect:'',date:''},verify:'',
-    summary:'태그는 모두 로맨스인데, 독자를 붙잡는 건 정체 미스터리라고 봤다. (개인 해석)',
-    review:{charm:"학원 로맨스 안에 숨은 정체 미스터리 — '조미의 몸속에 누가 있나'를 독자가 함께 추리한다 (14화 「진짜 조미 어디 갔어」 89 · 15화 「역시 자아가 다른 사람이었어」 83)",
-      hook:"8화에 열린 '몸속의 사람은 누구인가' 질문이 20화까지 이어진다 (리딩 로그)",
+    summary:'태그는 모두 로맨스인데, 독자를 붙잡는 건 정체 미스터리라고 봤다 (개인 해석)',
+    review:{charm:"학원 로맨스 안에 숨은 정체 미스터리. '조미의 몸속에 누가 있나'를 독자가 함께 추리한다",
+      hook:"8화에 열린 '몸속의 사람은 누구인가' 질문이 20화까지 이어진다 (내 리딩 로그)",
       intentMine:'',intentAuthor:'',intentSource:'',
       ask:'독자에게 정체에 관한 단서를 어느 시점에 공개하고 싶으셨나요?',
-      strengths:'정체를 둘러싼 궁금증이 독자 반응에서 눈에 띈다. 질문에 답이 나온 15화에 댓글이 가장 많았다 (28개).',
-      gaps:"질문이 쌓인 12화에 「내용이 너무 혼란스럽다」 공감 67. 태그 3개와 소개글이 로맨스 중심이라 미스터리 매력이 첫인상에 덜 보인다.",
-      nextQ:'단서 공개와 회차 엔딩의 호흡을 함께 검토할 수 있을까? · 미스터리를 소개와 태그에서 어디까지 드러내도 될까?'},
+      strengths:'정체를 둘러싼 궁금증이 독자 반응을 이끈다. 질문에 답이 나온 15화에 댓글이 가장 많았다.',
+      gaps:'질문이 쌓인 12화에 혼란스럽다는 반응이 있었다. 태그와 소개글이 로맨스 중심이라 미스터리 매력이 첫인상에 덜 보인다.',
+      nextQ:'단서 공개와 회차 엔딩의 호흡을 함께 검토할 수 있을까? / 미스터리를 소개와 태그에서 어디까지 드러내도 될까?',
+      criteria:SEED_CRITERIA()},
     logs,updated:'2026.11.15'}]};
 }
 
@@ -215,7 +236,7 @@ let VIEW={work:null,tab:'overview',filter:'all'};
 const work=id=>LAB.works.find(w=>w.id===id);
 function normalize(l){l=l&&Array.isArray(l.works)?l:seed();l.works.forEach(w=>{w.tags=w.tags||[];w.logs=Array.isArray(w.logs)?w.logs:[];w.logs.forEach(x=>{if(x.myStar==null&&x.immerse!=null)x.myStar=x.immerse;delete x.immerse;
     if(x.intent!=null){if(x.intentStatus==='작가 확인 완료'){x.intentAuthor=x.intentAuthor||x.intent}else{x.intentMine=x.intentMine||x.intent}delete x.intent;delete x.intentStatus}});
-  w.review=Object.assign(EMPTY_REVIEW(),w.review||{});w.first=w.first||{pick:'',risk:'',expect:'',date:''}});return l}
+  w.review=Object.assign(EMPTY_REVIEW(),w.review||{});if(!Array.isArray(w.review.criteria)||!w.review.criteria.length)w.review.criteria=w.id==='yuche'?SEED_CRITERIA():EMPTY_CRITERIA();w.first=w.first||{pick:'',risk:'',expect:'',date:''}});return l}
 function save(msg){
   const w=VIEW.work&&work(VIEW.work);if(w)w.updated=today();
   ROOT.lab=LAB;
@@ -305,22 +326,26 @@ function tChart(w){
   const pr=E.filter(e=>e.pubRating!=null).map(e=>e.pubRating);
   line('pubRating','공개 평균 별점','공개 화면 · 1~10',pr.length?Math.floor(Math.min(...pr)):1,10,v=>v.toFixed(2));
   const cv=E.filter(e=>e.comments!=null);
-  if(cv.length){const h=60,mx=Math.max(...cv.map(e=>e.comments)),base=y+h;o+=lab('댓글 수','공개 화면');o+=`<line x1="${L}" x2="${Wd-10}" y1="${base}" y2="${base}" stroke="#E6E9EE"/>`;cv.forEach(e=>{const bh=Math.max(2,e.comments/mx*(h-14)),bw=Math.min(22,cw*.55);o+=`<rect x="${cx(e.ep)-bw/2}" y="${base-bh}" width="${bw}" height="${bh}" rx="3" fill="${e.comments===mx?'#2457E6':'#C3CAD4'}" data-tip="${e.ep}화 댓글 ${e.comments}"/>`;if(e.comments===mx)o+=`<text x="${cx(e.ep)}" y="${base-bh-5}" font-size="11.5" font-weight="700" fill="#2457E6" text-anchor="middle">${e.comments}</text>`});y+=h+24}
+  if(cv.length){const h=60,mx=Math.max(...cv.map(e=>e.comments)),base=y+h;o+=lab('댓글 수','공개 화면');o+=`<line x1="${L}" x2="${Wd-10}" y1="${base}" y2="${base}" stroke="#E6E9EE"/>`;cv.forEach(e=>{const bh=Math.max(2,e.comments/mx*(h-14)),bw=Math.min(22,cw*.55);o+=`<rect x="${cx(e.ep)-bw/2}" y="${base-bh}" width="${bw}" height="${bh}" rx="3" fill="${e.comments===mx?'#00A04D':'#C3CAD4'}" data-tip="${e.ep}화 댓글 ${e.comments}"/>`;if(e.comments===mx)o+=`<text x="${cx(e.ep)}" y="${base-bh-5}" font-size="11.5" font-weight="700" fill="#00A04D" text-anchor="middle">${e.comments}</text>`});y+=h+24}
   const nv=E.filter(e=>e.next);
   o+=lab('다음 화 볼 이유','내 기록');
-  if(nv.length)nv.forEach(e=>{const c=e.next==='있다'?'#DDE2E9':e.next==='없다'?'#141820':'#2457E6';o+=`<rect x="${cx(e.ep)-cw/2+3}" y="${y+12}" width="${cw-6}" height="18" rx="5" fill="${c}" data-tip="${e.ep}화 다음 화 볼 이유: ${esc(e.next)}"/>`});
+  if(nv.length)nv.forEach(e=>{const c=e.next==='있다'?'#DDE2E9':e.next==='없다'?'#141820':'#00A04D';o+=`<rect x="${cx(e.ep)-cw/2+3}" y="${y+12}" width="${cw-6}" height="18" rx="5" fill="${c}" data-tip="${e.ep}화 다음 화 볼 이유: ${esc(e.next)}"/>`});
   else o+=`<text x="${L}" y="${y+26}" font-size="12.5" fill="#98A1AE">아직 기록 없음</text>`;
   y+=48;
   for(let i=1;i<=n;i++)o+=`<text x="${cx(i)}" y="${y+6}" font-size="12" fill="#98A1AE" text-anchor="middle">${i}</text>`;
   return `<div class="card"><p class="ctitle">회차 흐름</p><p class="cmeta">내 기록과 공개 반응을 같은 회차 축에 줄을 나눠 그립니다 · 서로 다른 데이터라 한 축에 겹치지 않습니다</p>
     <div class="chart"><svg viewBox="0 0 ${Wd} ${y+14}" role="img" aria-label="회차별 내 별점, 공개 별점, 댓글 수, 다음 화 볼 이유">${o}</svg></div>
-    <div class="legend"><span>다음 화 볼 이유: 회색 = 있다 · 파란색 = 일단 있다 · 검은색 = 없다</span><span>파란 막대 = 댓글 최다 회차</span></div></div>`}
+    <div class="legend"><span>다음 화 볼 이유: 회색 = 있다 · 초록색 = 일단 있다 · 검은색 = 없다</span><span>초록 막대 = 댓글 최다 회차</span></div></div>`}
 function tNote(w){
   const L=[...w.logs].sort((a,b)=>a.ep-b.ep);
   const R=w.review,goods=L.filter(l=>l.good),bads=L.filter(l=>l.bad),qs=L.filter(l=>l.question);
   const li=(arr,k)=>arr.length?`<ul class="list">${arr.map(l=>`<li><b class="num">${l.ep}화</b> ${esc(l[k])}</li>`).join('')}</ul>`:blank('회차 로그에 적으면 여기에 모입니다');
   const eb=`<button class="btn sm" type="button" data-act="editReview" data-id="${esc(w.id)}">편집</button>`;
+  const ec=`<button class="btn sm" type="button" data-act="editCriteria" data-id="${esc(w.id)}">편집</button>`;
   return `<div class="stack">
+    <div class="card" id="criteria"><p class="ctitle">작품 검토 기준 ${ec}</p><p class="cmeta">기준마다 관찰한 사실, 나의 해석, 검토 판단, 추가로 확인할 질문을 나눠 적습니다</p>
+      <div class="crit">${R.criteria.map((c,i)=>`<div class="crow"><h4><span class="cn">0${i+1}</span>${esc(c.name)}</h4>
+        <div class="cb fact"><b>관찰한 사실</b>${esc(c.fact)||blank()}</div><div class="cb interp"><b>나의 해석</b>${esc(c.interp)||blank()}</div><div class="cb judge"><b>검토 판단</b>${esc(c.judge)||'<span style="opacity:.6">아직 기록 없음</span>'}</div><div class="cb ask"><b>추가로 확인할 질문</b>${esc(c.ask)||blank()}</div></div>`).join('')}</div></div>
     <div class="grid2" style="align-items:start">
       <div class="card"><p class="ctitle">내가 발견한 매력 ${eb}</p><p class="cmeta">작품을 계속 읽게 한 것</p><p style="margin:0;font-size:15.5px;line-height:1.7">${esc(R.charm)||blank()}</p>
         <p class="ctitle" style="margin-top:20px;font-size:16px">독자가 다음 화를 기다릴 이유</p><p style="margin:6px 0 0;font-size:15px;line-height:1.7">${esc(R.hook)||blank()}</p></div>
@@ -371,6 +396,9 @@ const ACT={
     f=>{w.first={pick:V(f,'pick'),risk:V(f,'risk'),expect:V(f,'expect'),date:V(f,'date')};w.verify=V(f,'verify');save('저장했어요')})},
   newLog(){const w=work(VIEW.work);const ep=(w.logs.reduce((m,l)=>Math.max(m,l.ep||0),0))+1;editLog(null,ep)},
   editLog:id=>editLog(id),
+  editCriteria(id){const w=work(id),C=w.review.criteria;openDrawer('작품 검토 기준',w.title+' / 기준마다 사실과 해석을 나눠 적어요',
+    C.map((c,i)=>S(`0${i+1} ${c.name}`)+F('f'+i,'관찰한 사실',c.fact,{type:'area',h:'공개 화면, 댓글, 내 리딩 로그에서 확인한 것'})+F('i'+i,'나의 해석',c.interp,{type:'area'})+F('j'+i,'검토 판단',c.judge,{type:'area'})+F('a'+i,'추가로 확인할 질문',c.ask,{type:'area'})).join(''),
+    f=>{C.forEach((c,i)=>{c.fact=V(f,'f'+i);c.interp=V(f,'i'+i);c.judge=V(f,'j'+i);c.ask=V(f,'a'+i)});save('검토 기준을 저장했어요')})},
   editReview(id){const w=work(id),R=w.review;openDrawer('검토 메모',w.title,
     S('작품을 읽고')+F('charm','내가 발견한 매력',R.charm,{type:'area'})+F('hook','독자가 다음 화를 기다릴 이유',R.hook,{type:'area'})+
     S('작가 의도')+F('intentMine','내가 해석한 작가의 의도',R.intentMine,{type:'area',h:'원고를 읽으며 추정한 내용'})+F('intentAuthor','작가가 직접 밝힌 의도',R.intentAuthor,{type:'area',h:'인터뷰 · 미팅 · 공개 발언으로 확인한 내용만'})+F('intentSource','출처',R.intentSource,{ph:'예: 2026.12 작가 미팅'})+F('ask','작가에게 확인할 것',R.ask,{type:'area'})+
