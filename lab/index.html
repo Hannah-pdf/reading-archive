@@ -47,7 +47,8 @@ h1{font-size:30px;margin:6px 0 6px;letter-spacing:-.02em}
 .work{cursor:pointer;display:flex;flex-direction:column;padding:0;overflow:hidden;transition:transform .12s,box-shadow .12s;text-align:left;border:0}
 .work:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(20,24,32,.08)}
 .cover{aspect-ratio:16/9;background:linear-gradient(135deg,#E9EDF3,#DDE3EC);display:flex;align-items:center;justify-content:center;color:#8A94A3;font-size:13px;font-weight:600;position:relative}
-.cover img{width:100%;height:100%;object-fit:cover}
+.cover img{width:100%;height:100%;object-fit:contain;display:block}
+.cover.has-img{aspect-ratio:900/1304;background:#F3F5F8}
 .cover .ph{display:flex;flex-direction:column;align-items:center;gap:4px}
 .cover .ph b{font-size:28px;color:#B4BCC8}
 .wb{padding:18px 22px 20px;display:flex;flex-direction:column;gap:8px;flex:1}
@@ -67,7 +68,7 @@ h1{font-size:30px;margin:6px 0 6px;letter-spacing:-.02em}
 .whead{display:grid;grid-template-columns:240px minmax(0,1fr) auto;gap:24px;align-items:start;margin-bottom:22px}
 .whead .cover{border-radius:14px;overflow:hidden}
 .whead h1{margin:6px 0 4px}
-.whead .intro{font-size:14.5px;color:var(--sub);line-height:1.65;margin:10px 0 0;max-width:720px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.whead .intro{font-size:14.5px;color:var(--sub);line-height:1.65;margin:10px 0 0;max-width:760px}
 .tabs{display:flex;gap:8px;margin:0 0 20px;flex-wrap:wrap}
 .tabs button{border:0;background:transparent;padding:9px 14px;border-radius:10px;font-size:15px;font-weight:600;color:var(--sub)}
 .tabs button.on{background:var(--ink);color:#fff}
@@ -217,7 +218,7 @@ function seed(){
   const bad={13:"다음 화 볼 이유가 '있다'에서 '일단 있다'로 약해졌다",16:"새 질문이 더해졌지만 다음 화 볼 이유는 '일단 있다'에 머물렀다",20:'8화에 열린 핵심 질문이 20화까지 풀리지 않았다'};
   const logs=rating.map((r,i)=>{const ep=i+1;return {id:'e'+ep,ep,myStar:immerse[i],good:good[ep]||'',bad:bad[ep]||'',question:q[ep]||'',next:(ep<=12||ep===15)?'있다':'일단 있다',memo:memo[ep]||'',pubRating:r,likes:likes[ep]??null,comments:comments[ep]??null,quote:quote[ep]||'',intentMine:'',intentAuthor:'',intentSource:''}});
   return {works:[{id:'yuche',track:'serial',status:'검토 중',title:'유체를 이탈하였습니다',author:'이슬',platform:'네이버웹툰 · 월요웹툰',
-    tags:['로맨스','학원로맨스','청춘로맨스'],
+    tags:['로맨스','학원로맨스','청춘로맨스'],coverUrl:'/cover-yuche.jpg',
     intro:"소심한 아싸 오조미, 장난처럼 시작한 유체이탈에 성공한다. 이곳저곳 떠돌다 도착한 학교에서 짝사랑 상대인 도윤의 은밀한 비밀을 관람(?)하게 되는데...! 그 충격이 가시기도 전에 학교에 갇혀 버렸다는 것을 깨닫는다. 누군가의 도움이 절실한 상황, 때마침 그 '누군가'가 조미를 발견한다. 바로 같은 반 친구 돈에 미친XX, 돈미새 '구수지'. 과연 조미는 몸도 사랑도 되찾을 수 있을까? 돈으로 움직이는 수지와 그런 수지밖에 없는 조미의 우당탕 쿵탕 내 몸 찾기 프로젝트!",
     source:'공개 화면 직접 기록, 2026.11.6 수집 (작품 홈 2026.11.12), 관심 3,623',
     first:{pick:'',risk:'',expect:'',date:''},verify:'',
@@ -239,6 +240,7 @@ let VIEW={work:null,tab:'overview',filter:'all'};
 const work=id=>LAB.works.find(w=>w.id===id);
 function normalize(l){l=l&&Array.isArray(l.works)?l:seed();l.works.forEach(w=>{w.tags=w.tags||[];w.logs=Array.isArray(w.logs)?w.logs:[];w.logs.forEach(x=>{if(x.myStar==null&&x.immerse!=null)x.myStar=x.immerse;delete x.immerse;
     if(x.intent!=null){if(x.intentStatus==='작가 확인 완료'){x.intentAuthor=x.intentAuthor||x.intent}else{x.intentMine=x.intentMine||x.intent}delete x.intent;delete x.intentStatus}});
+  if(w.id==='yuche'&&(!w.coverUrl||w.coverUrl==='/lab/cover-yuche.jpg'))w.coverUrl='/cover-yuche.jpg';
   w.review=Object.assign(EMPTY_REVIEW(),w.review||{});if(!Array.isArray(w.review.criteria)||!w.review.criteria.length)w.review.criteria=w.id==='yuche'?SEED_CRITERIA():EMPTY_CRITERIA();w.first=w.first||{pick:'',risk:'',expect:'',date:''}});return l}
 function save(msg){
   const w=VIEW.work&&work(VIEW.work);if(w)w.updated=today();
@@ -248,7 +250,7 @@ function save(msg){
 async function publish(){try{const r=await fetch('/api/notes',{method:'POST',headers:{'content-type':'application/json','x-admin-key':ADMIN},body:JSON.stringify({key:WSKEY,value:JSON.stringify(ROOT)})});if(!r.ok)throw 0;toast('게시됨')}catch(e){store(LSKEY,JSON.stringify(LAB));toast('서버 게시 실패 · 이 브라우저에 임시 저장했어요')}}
 function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2000)}
 const stars=n=>n?`<span class="stars" aria-label="내 별점 ${n}점">${'★'.repeat(n)}<span class="off">${'★'.repeat(5-n)}</span></span>`:'<span class="stars"><span class="off">★★★★★</span></span>';
-const cover=w=>`<div class="cover">${w.coverUrl?`<img src="${esc(w.coverUrl)}" alt="">`:`<div class="ph"><b>${esc((w.title||'?').slice(0,1))}</b>표지 이미지 없음</div>`}</div>`;
+const cover=w=>`<div class="cover${w.coverUrl?' has-img':''}">${w.coverUrl?`<img src="${esc(w.coverUrl)}" alt="${esc(w.title)} 표지">`:`<div class="ph"><b>${esc((w.title||'?').slice(0,1))}</b>표지 이미지 없음</div>`}</div>`;
 const blank=t=>`<span class="blank">${t||'아직 기록 없음'}</span>`;
 
 /* ── 서재 ── */
@@ -271,7 +273,7 @@ function vHome(){
     ${VIEW.filter==='discovery'&&!arr.length?'<div class="empty">아직 등록한 투고작 · 발굴 후보가 없어요.</div>':''}
     <button class="addcard" type="button" data-act="newWork" data-id="${VIEW.filter==='all'?'':VIEW.filter}"><b>+</b>작품 등록<span class="cap" style="font-size:12.5px">${VIEW.filter==='discovery'?TRACK.discovery:VIEW.filter==='serial'?TRACK.serial:'연재작 · 투고작 · 발굴 후보'}</span></button>
   </div>
-  <div class="foot"><span>개인 웹툰 리딩 로그 · 네이버웹툰 공식 시스템이 아닙니다</span><span>${SRC==='server'?'편집 키 연결됨 · 바로 게시':SRC==='local'?'이 브라우저에서 고친 내용을 보고 있어요 · <button class="btn sm" type="button" data-act="resetLocal">처음 상태로 되돌리기</button>':'작품 등록 · 회차 로그 추가 · 편집을 직접 써 볼 수 있어요 (이 브라우저에만 저장)'}</span></div>`}
+  <div class="foot"><span>개인 웹툰 리딩 로그 · 네이버웹툰 공식 시스템이 아닙니다 · 작품 이미지는 분석 대상을 식별하기 위해 인용했으며, 권리는 작가와 플랫폼에 있습니다</span><span>${SRC==='server'?'편집 키 연결됨 · 바로 게시':SRC==='local'?'이 브라우저에서 고친 내용을 보고 있어요 · <button class="btn sm" type="button" data-act="resetLocal">처음 상태로 되돌리기</button>':'작품 등록 · 회차 로그 추가 · 편집을 직접 써 볼 수 있어요 (이 브라우저에만 저장)'}</span></div>`}
 
 /* ── 작품 페이지 ── */
 const TABS=[['overview','개요'],['logs','회차 로그'],['chart','데이터 차팅'],['note','검토 메모']];
