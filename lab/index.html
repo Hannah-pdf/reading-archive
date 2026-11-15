@@ -247,7 +247,7 @@ function vHome(){
     ${VIEW.filter==='discovery'&&!arr.length?'<div class="empty">아직 등록한 투고작 · 발굴 후보가 없어요.</div>':''}
     <button class="addcard" type="button" data-act="newWork" data-id="${VIEW.filter==='all'?'':VIEW.filter}"><b>+</b>작품 등록<span class="cap" style="font-size:12.5px">${VIEW.filter==='discovery'?TRACK.discovery:VIEW.filter==='serial'?TRACK.serial:'연재작 · 투고작 · 발굴 후보'}</span></button>
   </div>
-  <div class="foot"><span>개인 웹툰 리딩 로그 · 네이버웹툰 공식 시스템이 아닙니다</span><span>${SRC==='server'?'편집 키 연결됨 · 바로 게시':SRC==='local'?'이 브라우저에 저장된 내용':SRC==='published'?'공개 게시본':'기본 데이터'}</span></div>`}
+  <div class="foot"><span>개인 웹툰 리딩 로그 · 네이버웹툰 공식 시스템이 아닙니다</span><span>${SRC==='server'?'편집 키 연결됨 · 바로 게시':SRC==='local'?'이 브라우저에서 고친 내용을 보고 있어요 · <button class="btn sm" type="button" data-act="resetLocal">처음 상태로 되돌리기</button>':'작품 등록 · 회차 로그 추가 · 편집을 직접 써 볼 수 있어요 (이 브라우저에만 저장)'}</span></div>`}
 
 /* ── 작품 페이지 ── */
 const TABS=[['overview','개요'],['logs','회차 로그'],['chart','데이터 차팅'],['note','검토 메모']];
@@ -346,7 +346,7 @@ window.addEventListener('hashchange',()=>{readHash();closeDrawer();render();cons
 /* ── 편집 서랍 ── */
 let dSave=null;
 function openDrawer(title,desc,body,onSave,extra){const d=$('drawer');
-  d.innerHTML=`<header><div><h2>${esc(title)}</h2>${desc?`<p>${esc(desc)}</p>`:''}</div><button class="btn sm" type="button" data-act="close">닫기</button></header><form class="body" id="dform"><div class="fg">${body}</div></form><footer>${extra||''}<span class="sp"></span><button class="btn" type="button" data-act="close">취소</button><button class="btn primary" type="submit" form="dform">저장</button></footer>`;
+  d.innerHTML=`<header><div><h2>${esc(title)}</h2>${desc?`<p>${esc(desc)}</p>`:''}</div><button class="btn sm" type="button" data-act="close">닫기</button></header><form class="body" id="dform"><div class="fg">${body}</div></form><footer>${extra||''}<span class="sp"></span>${SRC==='server'?'':'<span class="cap" style="font-size:12px">체험 모드 · 저장 내용은 이 브라우저에만 남아요</span>'}<button class="btn" type="button" data-act="close">취소</button><button class="btn primary" type="submit" form="dform">저장</button></footer>`;
   dSave=onSave;d.classList.add('on');d.setAttribute('aria-hidden','false');$('scrim').classList.add('on');
   $('dform').onsubmit=e=>{e.preventDefault();const r=[...e.target.querySelectorAll('[required]')].find(x=>!x.value.trim());if(r){r.focus();toast('필수 항목을 채워 주세요');return}if(dSave&&dSave(e.target)!==false)closeDrawer()};
   setTimeout(()=>d.querySelector('input,textarea,select')?.focus(),60)}
@@ -364,6 +364,7 @@ const N=v=>{const x=parseFloat(String(v??'').replace(/[^0-9.\-]/g,''));return Nu
 const ACT={
   close:closeDrawer,home:()=>go(null),open:id=>go(id),tab:id=>go(VIEW.work,id),
   filter:id=>{VIEW.filter=id;render()},
+  resetLocal(){if(!confirm('이 브라우저에서 고친 내용을 지우고 처음 상태로 되돌릴까요?'))return;store(LSKEY,null);const pub=PUBLISHED&&PUBLISHED.lab;LAB=normalize(pub?JSON.parse(JSON.stringify(pub)):null);ROOT.lab=pub?JSON.parse(JSON.stringify(pub)):undefined;SRC=pub?'published':'seed';VIEW.work=null;location.hash='#/';render();toast('처음 상태로 되돌렸어요')},
   newWork:(track)=>editWork(null,track),editWork:id=>editWork(id),
   editFirst(id){const w=work(id);openDrawer('초기 판단 · 판단 검증',w.title,
     S('초기 판단')+F('pick','픽 사유',w.first.pick,{type:'area',ph:'이 작품을 계속 볼 이유, 독자에게 통할 것 같은 점'})+F('risk','우려 요소',w.first.risk,{type:'area'})+F('expect','예상 전개 · 독자 반응',w.first.expect,{type:'area'})+F('date','작성 시점',w.first.date,{ph:'예: 3화까지 읽고 · 2026.11.20',half:true})+S('판단 검증')+F('verify','검증 메모',w.verify,{type:'area',h:'회차가 쌓인 뒤, 초기 판단이 맞았는지 · 무엇을 놓쳤는지'}),
