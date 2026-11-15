@@ -212,7 +212,10 @@ function seed(){
   const q={1:'잠옷 차림, 학교 밖, 유체가 보이는 이유',7:'몸에 다른 사람이 들어왔나?',8:'몸속의 사람은 누구인가?',11:'반장의 과거',12:'조미와 몸의 기억이 다른 이유',16:'다른 유체이탈자, 귀신, 5일 경과'};
   const memo={15:'7화 질문에 답이 나옴',19:'공개 별점은 11.14 화면에서 7.78',20:'공개 별점은 11.14 화면에서 8.29'};
   const quote={12:'"내용이 너무 혼란스럽다" 67 / "조미 몸에 있는 녀석 너 누구야, 궁금해" 48',13:'"재밌는데 왜 안 뜨는지 모르겠다" 20',14:'"진짜 조미 어디 갔어" 89',15:'"역시 자아가 다른 사람이었어" 83',18:'"떡밥만 계속 늘고 회수는 언제 되나요" 22'};
-  const logs=rating.map((r,i)=>{const ep=i+1;return {id:'e'+ep,ep,myStar:immerse[i],good:'',bad:'',question:q[ep]||'',next:(ep<=12||ep===15)?'있다':'일단 있다',memo:memo[ep]||'',pubRating:r,likes:likes[ep]??null,comments:comments[ep]??null,quote:quote[ep]||'',intentMine:'',intentAuthor:'',intentSource:''}});
+  // 좋았던 점 / 아쉬운 점: 리딩 로그(몰입, 다음 화 볼 이유, 메모, 질문 장부)에서 바로 나오는 회차만 적음. 근거 없는 회차는 비워 둠
+  const good={1:'첫 화부터 질문 3개가 열려 다음 화가 바로 궁금했다',7:"'몸에 다른 사람이 들어왔나?'라는 질문이 생겨 몰입이 다시 올라갔다",8:"'몸속의 사람은 누구인가'라는 핵심 질문이 열렸다",12:"'조미와 몸의 기억이 다른 이유'라는 새 질문이 생겼다",15:'7화에 열린 질문에 답이 나와 추리가 한 단계 나아갔다'};
+  const bad={13:"다음 화 볼 이유가 '있다'에서 '일단 있다'로 약해졌다",16:"새 질문이 더해졌지만 다음 화 볼 이유는 '일단 있다'에 머물렀다",20:'8화에 열린 핵심 질문이 20화까지 풀리지 않았다'};
+  const logs=rating.map((r,i)=>{const ep=i+1;return {id:'e'+ep,ep,myStar:immerse[i],good:good[ep]||'',bad:bad[ep]||'',question:q[ep]||'',next:(ep<=12||ep===15)?'있다':'일단 있다',memo:memo[ep]||'',pubRating:r,likes:likes[ep]??null,comments:comments[ep]??null,quote:quote[ep]||'',intentMine:'',intentAuthor:'',intentSource:''}});
   return {works:[{id:'yuche',track:'serial',status:'검토 중',title:'유체를 이탈하였습니다',author:'이슬',platform:'네이버웹툰 · 월요웹툰',
     tags:['로맨스','학원로맨스','청춘로맨스'],
     intro:"소심한 아싸 오조미, 장난처럼 시작한 유체이탈에 성공한다. 이곳저곳 떠돌다 도착한 학교에서 짝사랑 상대인 도윤의 은밀한 비밀을 관람(?)하게 되는데...! 그 충격이 가시기도 전에 학교에 갇혀 버렸다는 것을 깨닫는다. 누군가의 도움이 절실한 상황, 때마침 그 '누군가'가 조미를 발견한다. 바로 같은 반 친구 돈에 미친XX, 돈미새 '구수지'. 과연 조미는 몸도 사랑도 되찾을 수 있을까? 돈으로 움직이는 수지와 그런 수지밖에 없는 조미의 우당탕 쿵탕 내 몸 찾기 프로젝트!",
