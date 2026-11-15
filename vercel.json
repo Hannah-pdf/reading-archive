@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    { "source": "/", "destination": "/lab/", "permanent": false },
+    { "source": "/index.html", "destination": "/lab/", "permanent": false },
+    { "source": "/index", "destination": "/lab/", "permanent": false },
+    { "source": "/data_archive_lab.html", "destination": "/lab/", "permanent": false },
+    { "source": "/data_archive_lab", "destination": "/lab/", "permanent": false }
+  ]
+}
