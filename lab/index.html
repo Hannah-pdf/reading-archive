@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Data Archive Lab</title>
-<meta name="description" content="회차마다 같은 기준으로 감상 · 독자 반응 · 작가 의도를 기록하고, 초기 판단을 나중에 검증하는 개인 웹툰 리딩 로그">
+<meta name="description" content="회차마다 같은 기준으로 감상, 독자 반응, 작가 의도를 기록하고 근거를 바탕으로 제안하는 개인 웹툰 리딩 로그">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Data Archive Lab · 검토 중인 작품">
-<meta property="og:description" content="회차별 리딩 로그와 초기 판단 검증을 위한 개인 웹툰 검토 도구">
+<meta property="og:title" content="Data Archive Lab / 검토 중인 작품">
+<meta property="og:description" content="읽고, 기록하고, 판단하고, 제안하는 개인 웹툰 검토 도구">
 <meta property="og:url" content="https://reading-archive-ten.vercel.app/lab/">
 <meta property="og:locale" content="ko_KR">
 <link rel="icon" href="data:,">
@@ -124,6 +124,17 @@ ul.list{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
 .cb.interp{border:1.5px dashed #C9D0DA}.cb.interp b{color:var(--sub)}
 .cb.judge{background:var(--ink);color:#fff}.cb.judge b{color:#7BE3A8}
 .cb.ask{background:var(--blue-soft)}.cb.ask b{color:var(--blue)}
+/* proposal */
+.prop{border-radius:14px;padding:18px 20px;background:#F8F9FB;display:grid;gap:10px}
+.prop.first{background:var(--blue-soft);box-shadow:0 0 0 1.5px var(--blue) inset}
+.prop .ph{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.prop .rk{font-size:12.5px;font-weight:800;color:var(--blue)}
+.prop .tt{font-size:16px;font-weight:800}
+.prop .ln{font-size:16.5px;font-weight:700;line-height:1.55;margin:0}
+.prop dl{display:grid;grid-template-columns:96px 1fr;gap:6px 14px;margin:0;font-size:14.5px;line-height:1.6}
+.prop dt{color:var(--sub);font-size:13px;padding-top:1px}.prop dd{margin:0;white-space:pre-line}
+.qrow.done span:first-child{color:var(--cap);text-decoration:line-through}
+.limits{margin:0;padding-left:18px;font-size:14px;line-height:1.75;color:var(--sub)}
 @media (max-width:900px){.crow{grid-template-columns:1fr}}
 /* drawer */
 .scrim{position:fixed;inset:0;background:rgba(20,24,32,.3);opacity:0;pointer-events:none;transition:opacity .15s;z-index:20}
@@ -175,10 +186,10 @@ ul.list{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
 <script defer src="/_vercel/insights/script.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════
-   Data Archive Lab v8 (프로토타입)
+   Data Archive Lab v9 (프로토타입)
+   - v9: 작가님께 드릴 제안, 질문 장부(열림/풀림), 이 기록의 한계, 차트 핵심 회차 표시, 문구 통일
    - 작품 서재(카드) → 작품 페이지(개요 · 회차 로그 · 데이터 차팅 · 검토 노트)
    - 구분: 연재작 분석 / 투고 · 원석 검토
-   - 저장: /api/notes 'ws:v1' 안의 lab 필드(편집 키 있을 때) · 없으면 이 브라우저
      (v5~v7의 works · hypotheses · findings 등 기존 필드는 지우지 않고 보존)
    - 이미지 업로드 칸은 화면만 있고 실제로 업로드하지 않습니다.
    ═══════════════════════════════════════════════════════════ */
@@ -188,21 +199,49 @@ const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const today=()=>{const d=new Date();return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')};
 function store(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)return localStorage.removeItem(k);localStorage.setItem(k,v)}catch(e){return null}}
-const TRACK={serial:'연재작',discovery:'투고작 · 발굴 후보'};
+const TRACK={serial:'연재작',discovery:'투고작 / 발굴 후보'};
 // 기록 방식은 같고, 검토 목적만 다르다
 const PURPOSE={
-  discovery:{q:'정식 연재로 발전시킬 매력이 있는가?',focus:'첫 화 후킹 · 캐릭터 · 장기 서사 가능성',next:'추가 원고 검토 · 작가 미팅 제안'},
-  serial:{q:'작품의 매력을 어떻게 더 잘 전달할까?',focus:'회차별 반응 · 전개 · 독자 기대',next:'원고 피드백 · 패키징 개선 논의'}};
+  discovery:{q:'정식 연재로 발전시킬 매력이 있는가?',focus:'첫 화 흡입력, 캐릭터, 장기 서사 가능성',next:'추가 원고 검토, 작가 미팅 제안'},
+  serial:{q:'작품의 매력을 어떻게 더 잘 전달할까?',focus:'회차별 반응, 전개, 독자 기대',next:'원고 피드백, 패키징 개선 논의'}};
 const STATUS=['검토 예정','검토 중','검토 완료','보류'];
-// 작품 검토 기준: 관찰한 사실 -> 나의 해석 -> 검토 판단 -> 추가로 확인할 질문
-const CRIT_NAMES=['소재 차별성과 타깃 독자','초반 후킹력과 다음 화를 읽게 하는 동기','캐릭터의 매력과 관계성','서사 전개와 연재 지속 가능성'];
+// 작품 검토 기준: 관찰한 사실 -> 나의 해석 -> 검토 판단 -> 추가로 확인할 질문 (포트폴리오 p.05와 같은 이름)
+const CRIT_NAMES=['소재와 타깃 독자','초반 흡입력과 다음 화를 읽을 이유','캐릭터의 매력과 관계성','서사 전개와 연재 지속 가능성'];
+const OLD_CRIT_NAMES=['소재 차별성과 타깃 독자','초반 후킹력과 다음 화를 읽게 하는 동기'];
 const EMPTY_CRITERIA=()=>CRIT_NAMES.map(name=>({name,fact:'',interp:'',judge:'',ask:''}));
 const EMPTY_REVIEW=()=>({charm:'',hook:'',intentMine:'',intentAuthor:'',intentSource:'',ask:'',strengths:'',gaps:'',nextQ:'',criteria:EMPTY_CRITERIA()});
+const EMPTY_PROPOSALS=()=>[1,2].map(()=>({title:'',line:'',evidence:'',ask:'',metric:''}));
+/* v9 문구 (포트폴리오 p.05~07, 자소서 Q4와 같은 내용) */
+const OLD_FACT0='태그 3개가 모두 로맨스다 (#로맨스 #학원로맨스 #청춘로맨스). 공감이 가장 많은 댓글 2개는 정체를 추리하는 내용이다.';
+const OLD_FACT3='8화에 열린 핵심 질문이 20화까지 열려 있다 (내 리딩 로그). 질문이 쌓인 12화에는 혼란스럽다는 댓글이, 답이 나온 15화에는 가장 많은 댓글이 달렸다.';
+const Y9={
+  fact0:OLD_FACT0+" '재밌는데 왜 안 뜨지'와 같은 뜻의 댓글도 8번 나왔다 (10~20화 인기 댓글 캡처 중).",
+  fact3:"8화에 열린 핵심 질문이 20화까지 열려 있다 (내 리딩 로그). 질문이 쌓인 12화에는 '내용이 너무 혼란스럽다'(공감 67)가, 답이 나온 15화에는 11~20화 중 가장 많은 댓글(28개)이 달렸다. 18화에는 '떡밥만 계속 늘고 회수는 언제 되나요'(공감 22)가 있었다.",
+  pick:'로맨스 인기순위가 낮은 작품 중 처음 읽는 작품을 골랐다. 순위만 보고 지나쳤다면 몰랐을 작품이다.',
+  hook:'질문 하나가 풀릴 때마다 추리가 한 단계 나아간다 (15화 기록)',
+  ask:'핵심 비밀은 어느 시점에 공개하려고 구상하셨나요?',
+  strengths:'정체를 둘러싼 미스터리가 독자의 추리와 반응을 이끈다.',
+  gaps:'답을 주는 간격이 길고, 미스터리 매력이 첫인상(태그, 소개글)에 드러나지 않는다.',
+  memo19:'공개 별점 7.88은 11.6 기준 / 11.14 재확인 때 7.78',
+  memo20:'공개 별점 8.19는 11.6 기준 / 11.14 재확인 때 8.29',
+  proposals:[
+    {title:'서사 호흡',line:'핵심 비밀은 유지하되, 독자가 이야기를 따라갈 수 있도록 단서 공개 시점을 검토합니다.',
+     evidence:'15화(답이 나온 회차) 댓글 28개, 11~20화 중 최다\n12화 "내용이 너무 혼란스럽다" 공감 67\n18화 "떡밥만 계속 늘고 회수는 언제 되나요" 공감 22',
+     ask:'핵심 비밀은 어느 시점에 공개하려고 구상하셨나요?\n그 전까지 풀어도 되는 작은 답은 무엇인가요?',metric:'조정한 회차 전후의 별점, 댓글 수, 댓글 속 추리 반응'},
+    {title:'첫인상',line:'로맨스의 매력을 유지하면서, 작품 소개에 주인공의 미스터리를 더 분명하게 드러내는 방향을 검토합니다.',
+     evidence:'태그 3개 모두 로맨스\n공감 1, 2위 댓글은 모두 정체 추리 (89, 83)\n"재밌는데 왜 안 뜨지"와 같은 뜻의 댓글 8번',
+     ask:'새로운 독자에게 가장 먼저 전달하고 싶은 작품의 매력은 무엇인가요?\n예) 소개글 첫 줄을 독자의 질문으로 바꾸거나 #미스터리 태그를 더하는 방향',metric:'소개 변경 전후의 관심 수'}],
+  limits:['인기 댓글만 봤습니다. 댓글을 남기지 않은 독자의 생각은 알 수 없습니다.',
+    '조회수와 회차별 이탈률은 공개되지 않아 쓰지 않았습니다. 별점이 내려간 것을 독자가 떠났다는 뜻으로 해석하지 않습니다.',
+    '내 별점(몰입), 다음 화 볼 이유, 질문은 1인 기록입니다.',
+    '공개 별점 20개는 수집 당시 옮겨 적은 값이며, 별점 화면 캡처는 없습니다.',
+    '좋아요와 댓글 수는 11~20화만 수집했습니다.'],
+  marks:[{ep:12,t:'혼란 댓글 67',c:'#5B6472'},{ep:15,t:'질문에 답, 댓글 28',c:'#00A04D'}]};
 const SEED_CRITERIA=()=>[
-  {name:CRIT_NAMES[0],fact:'태그 3개가 모두 로맨스다 (#로맨스 #학원로맨스 #청춘로맨스). 공감이 가장 많은 댓글 2개는 정체를 추리하는 내용이다.',interp:"학원 로맨스에 '몸속에 누가 있나'라는 미스터리가 겹친 것이 이 작품만의 결합이다.",judge:'차별점은 있다. 다만 지금의 첫인상은 로맨스를 찾는 독자에게만 맞춰져 있다.',ask:'미스터리를 좋아하는 독자에게도 닿으려면 무엇을 먼저 보여 줘야 할까?'},
-  {name:CRIT_NAMES[1],fact:"1~4화에 질문 3개, 7화와 8화에 정체에 관한 질문이 열렸다. 1~12화 내내 '다음 화 볼 이유'가 있었다 (내 리딩 로그).",interp:'질문을 빠르게 여는 설계가 다음 화를 누르게 만든다.',judge:'초반 후킹은 강점이다. 1인 기록이라 다른 독자 반응으로 더 확인해야 한다.',ask:'1~3화만 읽은 독자도 같은 질문을 품을까?'},
+  {name:CRIT_NAMES[0],fact:Y9.fact0,interp:"학원 로맨스에 '몸속에 누가 있나'라는 미스터리가 겹친 것이 이 작품만의 결합이다.",judge:'차별점은 있다. 다만 지금의 첫인상은 로맨스를 찾는 독자에게만 맞춰져 있다.',ask:'미스터리를 좋아하는 독자에게도 닿으려면 무엇을 먼저 보여 줘야 할까?'},
+  {name:CRIT_NAMES[1],fact:"1~4화에 질문 3개, 7화와 8화에 정체에 관한 질문이 열렸다. 1~12화 내내 '다음 화 볼 이유'가 있었다 (내 리딩 로그).",interp:'질문을 빠르게 여는 설계가 다음 화를 누르게 만든다.',judge:'초반 흡입력은 강점이다. 1인 기록이라 다른 독자 반응으로 더 확인해야 한다.',ask:'1~3화만 읽은 독자도 같은 질문을 품을까?'},
   {name:CRIT_NAMES[2],fact:'공식 소개글의 축은 조미, 짝사랑 상대 도윤, 돈으로 움직이는 수지다. 공감이 많은 댓글은 인물 관계보다 정체 추리에 모였다.',interp:"수지와 조미의 '내 몸 찾기' 관계가 미스터리를 끌고 가는 축일 수 있다 (가설).",judge:'관계성의 매력은 아직 판단할 근거가 부족하다. 회차별로 더 기록할 부분이다.',ask:'도윤의 비밀은 언제, 어떤 방식으로 드러날 계획일까?'},
-  {name:CRIT_NAMES[3],fact:'8화에 열린 핵심 질문이 20화까지 열려 있다 (내 리딩 로그). 질문이 쌓인 12화에는 혼란스럽다는 댓글이, 답이 나온 15화에는 가장 많은 댓글이 달렸다.',interp:'작은 답이 늦어지면 흔들리고, 답이 오면 반응이 돌아온다.',judge:'긴 연재를 끌고 갈 질문은 충분하다. 답을 주는 호흡이 보완할 지점이다.',ask:'핵심 비밀을 지키면서 먼저 풀어도 되는 작은 답은 무엇일까?'}];
+  {name:CRIT_NAMES[3],fact:Y9.fact3,interp:'작은 답이 늦어지면 흔들리고, 답이 오면 반응이 돌아온다.',judge:'긴 연재를 끌고 갈 질문은 충분하다. 답을 주는 호흡이 보완할 지점이다.',ask:'핵심 비밀을 지키면서 먼저 풀어도 되는 작은 답은 무엇일까?'}];
 
 /* ── 기본 데이터: 『유체를 이탈하였습니다』 (2026.11.6 수집 값 그대로 · 감상 칸은 비워 둠) ── */
 function seed(){
@@ -211,27 +250,23 @@ function seed(){
   const comments={11:21,12:20,13:23,14:21,15:28,16:14,17:12,18:21,19:17,20:14};
   const immerse=[5,5,5,5,4,4,5,5,5,5,4,5,4,4,5,4,4,4,4,4];
   const q={1:'잠옷 차림, 학교 밖, 유체가 보이는 이유',7:'몸에 다른 사람이 들어왔나?',8:'몸속의 사람은 누구인가?',11:'반장의 과거',12:'조미와 몸의 기억이 다른 이유',16:'다른 유체이탈자, 귀신, 5일 경과'};
-  const memo={15:'7화 질문에 답이 나옴',19:'공개 별점은 11.14 화면에서 7.78',20:'공개 별점은 11.14 화면에서 8.29'};
+  const memo={15:'7화 질문에 답이 나옴',19:Y9.memo19,20:Y9.memo20};
   const quote={12:'"내용이 너무 혼란스럽다" 67 / "조미 몸에 있는 녀석 너 누구야, 궁금해" 48',13:'"재밌는데 왜 안 뜨는지 모르겠다" 20',14:'"진짜 조미 어디 갔어" 89',15:'"역시 자아가 다른 사람이었어" 83',18:'"떡밥만 계속 늘고 회수는 언제 되나요" 22'};
   // 좋았던 점 / 아쉬운 점: 리딩 로그(몰입, 다음 화 볼 이유, 메모, 질문 장부)에서 바로 나오는 회차만 적음. 근거 없는 회차는 비워 둠
   const good={1:'첫 화부터 질문 3개가 열려 다음 화가 바로 궁금했다',7:"'몸에 다른 사람이 들어왔나?'라는 질문이 생겨 몰입이 다시 올라갔다",8:"'몸속의 사람은 누구인가'라는 핵심 질문이 열렸다",12:"'조미와 몸의 기억이 다른 이유'라는 새 질문이 생겼다",15:'7화에 열린 질문에 답이 나와 추리가 한 단계 나아갔다'};
   const bad={13:"다음 화 볼 이유가 '있다'에서 '일단 있다'로 약해졌다",16:"새 질문이 더해졌지만 다음 화 볼 이유는 '일단 있다'에 머물렀다",20:'8화에 열린 핵심 질문이 20화까지 풀리지 않았다'};
-  const logs=rating.map((r,i)=>{const ep=i+1;return {id:'e'+ep,ep,myStar:immerse[i],good:good[ep]||'',bad:bad[ep]||'',question:q[ep]||'',next:(ep<=12||ep===15)?'있다':'일단 있다',memo:memo[ep]||'',pubRating:r,likes:likes[ep]??null,comments:comments[ep]??null,quote:quote[ep]||'',intentMine:'',intentAuthor:'',intentSource:''}});
-  return {works:[{id:'yuche',track:'serial',status:'검토 중',title:'유체를 이탈하였습니다',author:'이슬',platform:'네이버웹툰 · 월요웹툰',
+  const logs=rating.map((r,i)=>{const ep=i+1;return {id:'e'+ep,ep,myStar:immerse[i],good:good[ep]||'',bad:bad[ep]||'',question:q[ep]||'',next:(ep<=12||ep===15)?'있다':'일단 있다',solves:ep===15?7:null,memo:memo[ep]||'',pubRating:r,likes:likes[ep]??null,comments:comments[ep]??null,quote:quote[ep]||'',intentMine:'',intentAuthor:'',intentSource:''}});
+  return {works:[{id:'yuche',track:'serial',status:'검토 중',title:'유체를 이탈하였습니다',author:'이슬',platform:'네이버웹툰 / 월요웹툰',
     tags:['로맨스','학원로맨스','청춘로맨스'],coverUrl:'/cover-yuche.jpg',
     intro:"소심한 아싸 오조미, 장난처럼 시작한 유체이탈에 성공한다. 이곳저곳 떠돌다 도착한 학교에서 짝사랑 상대인 도윤의 은밀한 비밀을 관람(?)하게 되는데...! 그 충격이 가시기도 전에 학교에 갇혀 버렸다는 것을 깨닫는다. 누군가의 도움이 절실한 상황, 때마침 그 '누군가'가 조미를 발견한다. 바로 같은 반 친구 돈에 미친XX, 돈미새 '구수지'. 과연 조미는 몸도 사랑도 되찾을 수 있을까? 돈으로 움직이는 수지와 그런 수지밖에 없는 조미의 우당탕 쿵탕 내 몸 찾기 프로젝트!",
     source:'공개 화면 직접 기록, 2026.11.6 수집 (작품 홈 2026.11.12), 관심 3,623',
-    first:{pick:'',risk:'',expect:'',date:''},verify:'',
+    first:{pick:Y9.pick,risk:'',expect:'',date:''},verify:'',
     summary:'태그는 모두 로맨스인데, 독자를 붙잡는 건 정체 미스터리라고 봤다 (개인 해석)',
     review:{charm:"학원 로맨스 안에 숨은 정체 미스터리. '조미의 몸속에 누가 있나'를 독자가 함께 추리한다",
-      hook:"8화에 열린 '몸속의 사람은 누구인가' 질문이 20화까지 이어진다 (내 리딩 로그)",
-      intentMine:'',intentAuthor:'',intentSource:'',
-      ask:'독자에게 정체에 관한 단서를 어느 시점에 공개하고 싶으셨나요?',
-      strengths:'정체를 둘러싼 궁금증이 독자 반응을 이끈다. 질문에 답이 나온 15화에 댓글이 가장 많았다.',
-      gaps:'질문이 쌓인 12화에 혼란스럽다는 반응이 있었다. 태그와 소개글이 로맨스 중심이라 미스터리 매력이 첫인상에 덜 보인다.',
-      nextQ:'단서 공개와 회차 엔딩의 호흡을 함께 검토할 수 있을까? / 미스터리를 소개와 태그에서 어디까지 드러내도 될까?',
-      criteria:SEED_CRITERIA()},
-    logs,updated:'2026.11.15'}]};
+      hook:Y9.hook,intentMine:'',intentAuthor:'',intentSource:'',ask:Y9.ask,
+      strengths:Y9.strengths,gaps:Y9.gaps,nextQ:'',criteria:SEED_CRITERIA()},
+    proposals:JSON.parse(JSON.stringify(Y9.proposals)),limits:[...Y9.limits],marks:JSON.parse(JSON.stringify(Y9.marks)),v9:true,
+    logs,updated:'2026.11.17'}]};
 }
 
 /* ── 상태 ── */
@@ -241,13 +276,42 @@ const work=id=>LAB.works.find(w=>w.id===id);
 function normalize(l){l=l&&Array.isArray(l.works)?l:seed();l.works.forEach(w=>{w.tags=w.tags||[];w.logs=Array.isArray(w.logs)?w.logs:[];w.logs.forEach(x=>{if(x.myStar==null&&x.immerse!=null)x.myStar=x.immerse;delete x.immerse;
     if(x.intent!=null){if(x.intentStatus==='작가 확인 완료'){x.intentAuthor=x.intentAuthor||x.intent}else{x.intentMine=x.intentMine||x.intent}delete x.intent;delete x.intentStatus}});
   if(w.id==='yuche'&&(!w.coverUrl||w.coverUrl==='/lab/cover-yuche.jpg'))w.coverUrl='/cover-yuche.jpg';
-  w.review=Object.assign(EMPTY_REVIEW(),w.review||{});if(!Array.isArray(w.review.criteria)||!w.review.criteria.length)w.review.criteria=w.id==='yuche'?SEED_CRITERIA():EMPTY_CRITERIA();w.first=w.first||{pick:'',risk:'',expect:'',date:''}});return l}
+  w.review=Object.assign(EMPTY_REVIEW(),w.review||{});if(!Array.isArray(w.review.criteria)||!w.review.criteria.length)w.review.criteria=w.id==='yuche'?SEED_CRITERIA():EMPTY_CRITERIA();w.first=w.first||{pick:'',risk:'',expect:'',date:''};
+  w.review.criteria.forEach((c,i)=>{if(OLD_CRIT_NAMES[i]&&c.name===OLD_CRIT_NAMES[i])c.name=CRIT_NAMES[i]});
+  if(w.id==='yuche'&&!w.v9)migrate9(w);
+  if(!Array.isArray(w.proposals))w.proposals=EMPTY_PROPOSALS();if(!Array.isArray(w.limits))w.limits=[];if(!Array.isArray(w.marks))w.marks=[]});return l}
+// v9: 이미 게시된 데이터도 화면에서 같은 문구로 보이게 바꿈. 예전 기본 문구와 같을 때만 바꾸고, 직접 고친 내용은 그대로 둠
+function migrate9(w){
+  const sw=(o,k,oldV,newV)=>{if(o[k]===oldV||o[k]==null||o[k]==='')o[k]=newV};
+  if(w.platform==='네이버웹툰 · 월요웹툰')w.platform='네이버웹툰 / 월요웹툰';
+  sw(w.first,'pick','',Y9.pick);
+  const R=w.review,C=R.criteria;
+  if(C[0]&&C[0].fact===OLD_FACT0)C[0].fact=Y9.fact0;
+  if(C[3]&&C[3].fact===OLD_FACT3)C[3].fact=Y9.fact3;
+  if(C[1]&&C[1].judge==='초반 후킹은 강점이다. 1인 기록이라 다른 독자 반응으로 더 확인해야 한다.')C[1].judge='초반 흡입력은 강점이다. 1인 기록이라 다른 독자 반응으로 더 확인해야 한다.';
+  sw(R,'hook',"8화에 열린 '몸속의 사람은 누구인가' 질문이 20화까지 이어진다 (내 리딩 로그)",Y9.hook);
+  sw(R,'ask','독자에게 정체에 관한 단서를 어느 시점에 공개하고 싶으셨나요?',Y9.ask);
+  sw(R,'strengths','정체를 둘러싼 궁금증이 독자 반응을 이끈다. 질문에 답이 나온 15화에 댓글이 가장 많았다.',Y9.strengths);
+  sw(R,'gaps','질문이 쌓인 12화에 혼란스럽다는 반응이 있었다. 태그와 소개글이 로맨스 중심이라 미스터리 매력이 첫인상에 덜 보인다.',Y9.gaps);
+  if(R.nextQ==='단서 공개와 회차 엔딩의 호흡을 함께 검토할 수 있을까? / 미스터리를 소개와 태그에서 어디까지 드러내도 될까?')R.nextQ='';
+  w.logs.forEach(x=>{
+    if(x.ep===15&&x.solves==null)x.solves=7;
+    if(x.ep===19&&x.memo==='공개 별점은 11.14 화면에서 7.78')x.memo=Y9.memo19;
+    if(x.ep===20&&x.memo==='공개 별점은 11.14 화면에서 8.29')x.memo=Y9.memo20});
+  if(!Array.isArray(w.proposals)||!w.proposals.some(p=>p.line))w.proposals=JSON.parse(JSON.stringify(Y9.proposals));
+  if(!Array.isArray(w.limits)||!w.limits.length)w.limits=[...Y9.limits];
+  if(!Array.isArray(w.marks)||!w.marks.length)w.marks=JSON.parse(JSON.stringify(Y9.marks));
+  w.v9=true}
+// 회차 질문 장부: 열린 회차 -> 풀린 회차
+function qbook(w){const by={};w.logs.forEach(l=>{if(l.solves)by[l.solves]=l.ep});
+  const qs=[...w.logs].filter(l=>l.question).sort((a,b)=>a.ep-b.ep).map(l=>({ep:l.ep,q:l.question,closed:by[l.ep]||null}));
+  return {all:qs,open:qs.filter(x=>!x.closed),closed:qs.filter(x=>x.closed)}}
 function save(msg){
   const w=VIEW.work&&work(VIEW.work);if(w)w.updated=today();
   ROOT.lab=LAB;
   if(ADMIN&&API_OK){SRC='server';clearTimeout(pubT);pubT=setTimeout(publish,500)}else{SRC='local';store(LSKEY,JSON.stringify(LAB))}
   if(msg)toast(msg);render()}
-async function publish(){try{const r=await fetch('/api/notes',{method:'POST',headers:{'content-type':'application/json','x-admin-key':ADMIN},body:JSON.stringify({key:WSKEY,value:JSON.stringify(ROOT)})});if(!r.ok)throw 0;toast('게시됨')}catch(e){store(LSKEY,JSON.stringify(LAB));toast('서버 게시 실패 · 이 브라우저에 임시 저장했어요')}}
+async function publish(){try{const r=await fetch('/api/notes',{method:'POST',headers:{'content-type':'application/json','x-admin-key':ADMIN},body:JSON.stringify({key:WSKEY,value:JSON.stringify(ROOT)})});if(!r.ok)throw 0;toast('게시했습니다')}catch(e){store(LSKEY,JSON.stringify(LAB));toast('서버 게시에 실패해 이 브라우저에 임시 저장했습니다')}}
 function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2000)}
 const stars=n=>n?`<span class="stars" aria-label="내 별점 ${n}점">${'★'.repeat(n)}<span class="off">${'★'.repeat(5-n)}</span></span>`:'<span class="stars"><span class="off">★★★★★</span></span>';
 const cover=w=>`<div class="cover${w.coverUrl?' has-img':''}">${w.coverUrl?`<img src="${esc(w.coverUrl)}" alt="${esc(w.title)} 표지">`:`<div class="ph"><b>${esc((w.title||'?').slice(0,1))}</b>표지 이미지 없음</div>`}</div>`;
@@ -258,22 +322,22 @@ function vHome(){
   const arr=LAB.works.filter(w=>VIEW.filter==='all'||w.track===VIEW.filter);
   const cnt=k=>LAB.works.filter(w=>w.track===k).length;
   return `<header class="top"><div><div class="kicker">DATA ARCHIVE LAB</div><h1>검토 중인 작품</h1>
-    <p class="lead">좋은 작품을 알아보는 안목을 기르기 위해, 읽은 작품마다 판단의 근거를 남깁니다 · 읽고 기록 → 비교하고 판단 → 논의하고 제안</p></div>
+    <p class="lead">좋은 작품을 알아보는 안목을 기르기 위해, 읽은 작품마다 판단의 근거를 남깁니다. 읽고, 기록하고, 판단하고, 제안합니다.</p></div>
     <button class="btn primary" type="button" data-act="newWork">+ 작품 등록</button></header>
   <div class="filters"><div class="seg" role="group" aria-label="구분">
     <button type="button" class="${VIEW.filter==='all'?'on':''}" data-act="filter" data-id="all">전체 ${LAB.works.length}</button>
     <button type="button" class="${VIEW.filter==='serial'?'on':''}" data-act="filter" data-id="serial">${TRACK.serial} ${cnt('serial')}</button>
     <button type="button" class="${VIEW.filter==='discovery'?'on':''}" data-act="filter" data-id="discovery">${TRACK.discovery} ${cnt('discovery')}</button></div></div>
   <div class="shelf">
-    ${arr.map(w=>{const L=w.logs,mine=L.filter(l=>l.good||l.bad).length;return `<button class="card work" type="button" data-act="open" data-id="${esc(w.id)}">
+    ${arr.map(w=>{const L=w.logs,Q=qbook(w),np=(w.proposals||[]).filter(p=>p.line).length;return `<button class="card work" type="button" data-act="open" data-id="${esc(w.id)}">
       ${cover(w)}<div class="wb"><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill b">${TRACK[w.track]}</span><span class="pill ${w.status==='검토 완료'?'ok':''}">${esc(w.status)}</span></div>
-      <h2>${esc(w.title)}</h2><p class="by">${esc([w.author,w.platform].filter(Boolean).join(' · '))}</p>
+      <h2>${esc(w.title)}</h2><p class="by">${esc([w.author,w.platform].filter(Boolean).join(' / '))}</p>
       <div class="tags">${w.tags.map(t=>`<span>#${esc(t)}</span>`).join('')}</div>
-      <div class="meta"><div><b class="num">${L.length}</b>회차 로그</div><div><b class="num">${mine}</b>감상 작성</div><div><b>${w.first.pick?'작성':'—'}</b>초기 판단</div></div></div></button>`}).join('')}
-    ${VIEW.filter==='discovery'&&!arr.length?'<div class="empty">아직 등록한 투고작 · 발굴 후보가 없어요.</div>':''}
-    <button class="addcard" type="button" data-act="newWork" data-id="${VIEW.filter==='all'?'':VIEW.filter}"><b>+</b>작품 등록<span class="cap" style="font-size:12.5px">${VIEW.filter==='discovery'?TRACK.discovery:VIEW.filter==='serial'?TRACK.serial:'연재작 · 투고작 · 발굴 후보'}</span></button>
+      <div class="meta"><div><b class="num">${L.length}</b>회차 로그</div><div><b class="num">${Q.open.length}</b>열린 질문</div><div><b class="num">${np||'-'}</b>작가 제안</div></div></div></button>`}).join('')}
+    ${VIEW.filter==='discovery'&&!arr.length?'<div class="empty">아직 등록한 투고작이 없습니다. 연재작에서 쓴 기록 방식과 검토 기준을 그대로 적용할 예정입니다.</div>':''}
+    <button class="addcard" type="button" data-act="newWork" data-id="${VIEW.filter==='all'?'':VIEW.filter}"><b>+</b>작품 등록<span class="cap" style="font-size:12.5px">${VIEW.filter==='discovery'?TRACK.discovery:VIEW.filter==='serial'?TRACK.serial:'연재작, 투고작, 발굴 후보'}</span></button>
   </div>
-  <div class="foot"><span>개인 웹툰 리딩 로그 · 네이버웹툰 공식 시스템이 아닙니다 · 작품 이미지는 분석 대상을 식별하기 위해 인용했으며, 권리는 작가와 플랫폼에 있습니다</span><span>${SRC==='server'?'편집 키 연결됨 · 바로 게시':SRC==='local'?'이 브라우저에서 고친 내용을 보고 있어요 · <button class="btn sm" type="button" data-act="resetLocal">처음 상태로 되돌리기</button>':'작품 등록 · 회차 로그 추가 · 편집을 직접 써 볼 수 있어요 (이 브라우저에만 저장)'}</span></div>`}
+  <div class="foot"><span>개인 웹툰 리딩 로그입니다. 네이버웹툰 공식 시스템이 아닙니다. 작품 이미지는 분석 대상을 식별하기 위해 인용했으며, 권리는 작가와 플랫폼에 있습니다.</span><span>${SRC==='server'?'관리 모드 / 바로 게시 <button class="btn sm" type="button" data-act="visits">방문 기록</button>':SRC==='local'?'이 브라우저에서 고친 내용을 보고 있습니다 <button class="btn sm" type="button" data-act="resetLocal">처음 상태로 되돌리기</button>':'작품 등록, 회차 로그 추가, 편집을 직접 써 볼 수 있습니다 (이 브라우저에만 저장)'}</span></div>`}
 
 /* ── 작품 페이지 ── */
 const TABS=[['overview','개요'],['logs','회차 로그'],['chart','데이터 차팅'],['note','검토 메모']];
@@ -282,92 +346,104 @@ function vWork(w){
   return `<button class="back" type="button" data-act="home">← 검토 중인 작품</button>
   <div class="whead">${cover(w)}
     <div><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill b">${TRACK[w.track]}</span><span class="pill ${w.status==='검토 완료'?'ok':''}">${esc(w.status)}</span></div>
-      <h1>${esc(w.title)}</h1><p class="lead">${esc([w.author,w.platform].filter(Boolean).join(' · '))}${w.tags.length?' · '+w.tags.map(x=>'#'+esc(x)).join(' '):''}</p>
+      <h1>${esc(w.title)}</h1><p class="lead">${esc([w.author,w.platform].filter(Boolean).join(' / '))}${w.tags.length?' / '+w.tags.map(x=>'#'+esc(x)).join(' '):''}</p>
       ${w.intro?`<p class="intro">${esc(w.intro)}</p>`:''}</div>
     <button class="btn sm" type="button" data-act="editWork" data-id="${esc(w.id)}">작품 정보 편집</button></div>
   <nav class="tabs" aria-label="작품 보기">${TABS.map(([k,l])=>`<button type="button" class="${k===t?'on':''}" data-act="tab" data-id="${k}">${l}</button>`).join('')}</nav>
   ${({overview:tOverview,logs:tLogs,chart:tChart,note:tNote})[t](w)}`}
 function tOverview(w){
   const L=w.logs,mine=L.filter(l=>l.myStar),avg=a=>a.length?(a.reduce((s,v)=>s+v,0)/a.length):null;
-  const open=L.filter(l=>l.question).length, confirmed=L.filter(l=>l.intentAuthor).length+(w.review.intentAuthor?1:0), P=PURPOSE[w.track]||PURPOSE.serial;
-  return `<div class="card" style="margin-bottom:20px"><p class="ctitle">검토 목적 · ${TRACK[w.track]}</p><p class="cmeta">기록 방식은 같고, 검토 목적만 달라집니다</p>
+  const Q=qbook(w), P=PURPOSE[w.track]||PURPOSE.serial, F1=w.first;
+  const firstRows=[['픽 사유',F1.pick],['우려 요소',F1.risk],['예상 전개',F1.expect],['작성 시점',F1.date]].filter(r=>r[1]);
+  const missing=[['우려 요소',F1.risk],['예상 전개',F1.expect]].filter(r=>!r[1]).map(r=>r[0]);
+  return `<div class="card" style="margin-bottom:20px"><p class="ctitle">검토 목적 / ${TRACK[w.track]}</p><p class="cmeta">기록 방식은 같고, 작품의 구분에 따라 검토 목적만 달라집니다</p>
       <dl class="kv"><dt>핵심 질문</dt><dd style="font-weight:700">${P.q}</dd><dt>중점 기록</dt><dd>${P.focus}</dd><dt>다음 행동</dt><dd>${P.next}</dd></dl></div>
   <div class="grid2" style="align-items:start">
     <div class="stack">
-      <div class="card"><p class="ctitle">검토 현황</p><p class="cmeta">회차 로그에서 자동 집계 · 별점은 참고용이며 연재 여부를 정하는 점수가 아닙니다</p>
-        <div class="status"><div><b class="num">${L.length}</b><span>회차 로그</span></div><div><b class="num">${mine.length?avg(mine.map(l=>l.myStar)).toFixed(1):'—'}</b><span>내 별점 평균</span></div><div><b class="num">${open}</b><span>남은 질문 기록</span></div><div><b class="num">${confirmed}</b><span>작가가 밝힌 의도</span></div></div></div>
+      <div class="card"><p class="ctitle">검토 현황</p><p class="cmeta">회차 로그에서 자동으로 셉니다. 내 별점은 참고용이며 연재 여부를 정하는 점수가 아닙니다</p>
+        <div class="status"><div><b class="num">${L.length}</b><span>회차 로그</span></div><div><b class="num">${mine.length?avg(mine.map(l=>l.myStar)).toFixed(1):'-'}</b><span>내 별점 평균 (몰입)</span></div><div><b class="num">${Q.open.length}</b><span>열린 질문</span></div><div><b class="num">${Q.closed.length}</b><span>풀린 질문</span></div></div></div>
       <div class="card"><p class="ctitle">작품 정보 <button class="btn sm" type="button" data-act="editWork" data-id="${esc(w.id)}">편집</button></p><p class="cmeta">${esc(w.source||'')}</p>
         <dl class="kv"><dt>구분</dt><dd>${TRACK[w.track]}</dd><dt>작가</dt><dd>${esc(w.author)||blank()}</dd><dt>플랫폼</dt><dd>${esc(w.platform)||blank()}</dd><dt>태그</dt><dd>${w.tags.map(t=>'#'+esc(t)).join(' ')||blank()}</dd><dt>소개글</dt><dd>${esc(w.intro)||blank()}</dd></dl></div>
     </div>
     <div class="stack">
-      <div class="card"><p class="ctitle">초기 판단 <button class="btn sm" type="button" data-act="editFirst" data-id="${esc(w.id)}">편집</button></p><p class="cmeta">초반 회차(3화 전후)에서 먼저 적어 두는 판단 · 나중에 검증합니다</p>
-        <dl class="kv"><dt>픽 사유</dt><dd>${esc(w.first.pick)||blank()}</dd><dt>우려 요소</dt><dd>${esc(w.first.risk)||blank()}</dd><dt>예상 전개</dt><dd>${esc(w.first.expect)||blank()}</dd><dt>작성 시점</dt><dd>${esc(w.first.date)||blank()}</dd></dl></div>
-      <div class="card"><p class="ctitle">판단 검증 <button class="btn sm" type="button" data-act="editFirst" data-id="${esc(w.id)}">편집</button></p><p class="cmeta">회차가 쌓인 뒤, 초기 판단이 맞았는지 돌아봅니다</p>
-        <p style="margin:0;font-size:14.5px;line-height:1.7;white-space:pre-line">${esc(w.verify)||blank('초기 판단을 적은 뒤 회차가 쌓이면 작성합니다')}</p></div>
+      <div class="card"><p class="ctitle">초기 판단 <button class="btn sm" type="button" data-act="editFirst" data-id="${esc(w.id)}">편집</button></p><p class="cmeta">읽기 전이나 초반 회차에서 먼저 적어 두고, 회차가 쌓인 뒤 검증합니다</p>
+        ${firstRows.length?`<dl class="kv">${firstRows.map(r=>`<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>`:blank('아직 적지 않았습니다')}
+        ${firstRows.length&&missing.length?`<p class="cmeta" style="margin:12px 0 0">${missing.join(', ')}는 당시 기록이 없어 비워 둡니다</p>`:''}</div>
+      ${w.verify?`<div class="card"><p class="ctitle">판단 검증 <button class="btn sm" type="button" data-act="editFirst" data-id="${esc(w.id)}">편집</button></p><p class="cmeta">회차가 쌓인 뒤, 초기 판단이 맞았는지 돌아봅니다</p>
+        <p style="margin:0;font-size:14.5px;line-height:1.7;white-space:pre-line">${esc(w.verify)}</p></div>`:''}
     </div></div>`}
 function tLogs(w){
   const L=[...w.logs].sort((a,b)=>b.ep-a.ep), nextEp=(L[0]?.ep||0)+1;
+  const qOf=ep=>(w.logs.find(x=>x.ep===ep)||{}).question||'';
+  const head=l=>l.good||l.bad||(l.question?'새 질문 / '+l.question:'')||(l.solves?`${l.solves}화 질문이 풀림`:'')||'짧은 감상 없음 / 별점과 다음 화 볼 이유만 기록';
   return `<div class="eplist"><button class="addep" type="button" data-act="newLog">+ ${nextEp}화 리딩 로그 추가</button>
-    <p class="cmeta" style="margin:0 2px">최신 회차부터 · 별점은 참고용 기록입니다</p>
-    ${L.map(l=>`<details class="ep" ${VIEW.ep===l.ep?'open':''} id="ep-${l.ep}"><summary><span class="no num">${l.ep}화</span>${stars(l.myStar)}<span class="line">${esc(l.good||l.question&&('남은 질문 · '+l.question)||l.memo||'감상 미작성')}</span><span style="display:flex;gap:6px">${l.next?`<span class="pill ${l.next==='있다'?'':'b'}">다음 화 ${esc(l.next)}</span>`:''}${l.intentAuthor?'<span class="pill ok">작가가 밝힌 의도</span>':''}</span></summary>
+    <p class="cmeta" style="margin:0 2px">최신 회차부터 보여 줍니다. 내 별점은 몰입 정도를 적은 참고용 기록입니다</p>
+    ${L.map(l=>`<details class="ep" ${VIEW.ep===l.ep?'open':''} id="ep-${l.ep}"><summary><span class="no num">${l.ep}화</span>${stars(l.myStar)}<span class="line" ${!(l.good||l.bad||l.question||l.solves)?'style="color:var(--cap)"':''}>${esc(head(l))}</span><span style="display:flex;gap:6px">${l.solves?'<span class="pill ok">질문 풀림</span>':''}${l.next?`<span class="pill ${l.next==='있다'?'b':''}">다음 화 ${esc(l.next)}</span>`:''}${l.intentAuthor?'<span class="pill ok">작가가 밝힌 의도</span>':''}</span></summary>
     <div class="epb">
       <div class="fbox"><b>좋았던 점</b>${esc(l.good)||blank()}</div>
       <div class="fbox"><b>아쉬운 점</b>${esc(l.bad)||blank()}</div>
-      <div class="fbox"><b>남은 질문</b>${esc(l.question)||blank('질문 없음')}</div>
-      <div class="fbox"><b>내 별점 · 다음 화 볼 이유</b>${l.myStar?`${l.myStar} / 5`:blank('별점 없음')} · ${l.next?`다음 화 볼 이유 ${esc(l.next)}`:blank('다음 화 볼 이유 미기록')}</div>
-      <div class="fbox pub"><b>공개 반응</b>${l.pubRating!=null?`평균 별점 ${l.pubRating}`:'평균 별점 —'} · ${l.likes!=null?`좋아요 ${l.likes}`:'좋아요 —'} · ${l.comments!=null?`댓글 ${l.comments}`:'댓글 —'}${l.quote?`\n${esc(l.quote)}`:''}</div>
-      <div class="fbox pub"><b>메모 · 첨부</b>${esc(l.memo)||blank('메모 없음')}\n${blank('댓글 · 화면 캡처 첨부 없음')}</div>
-      <div class="fbox intent"><b>작가 의도</b><span class="muted">내가 해석한 의도</span> · ${esc(l.intentMine)||blank()}\n<span class="muted">작가가 직접 밝힌 의도</span> · ${l.intentAuthor?`${esc(l.intentAuthor)}${l.intentSource?` (출처: ${esc(l.intentSource)})`:''}`:blank()}</div>
+      <div class="fbox"><b>새로 생긴 질문</b>${esc(l.question)||blank('이 회차에서 새로 생긴 질문 없음')}${l.solves?`\n<span class="muted">풀린 질문 / ${l.solves}화 "${esc(qOf(l.solves))}"</span>`:''}</div>
+      <div class="fbox"><b>내 별점, 다음 화 볼 이유</b>${l.myStar?`${l.myStar} / 5`:blank('별점 없음')}, ${l.next?`다음 화 볼 이유 ${esc(l.next)}`:blank('다음 화 볼 이유 미기록')}</div>
+      <div class="fbox pub"><b>공개 반응</b>${l.pubRating!=null?`평균 별점 ${l.pubRating}`:'평균 별점 -'} / ${l.likes!=null?`좋아요 ${l.likes}`:'좋아요 -'} / ${l.comments!=null?`댓글 ${l.comments}`:'댓글 -'}${l.quote?`\n${esc(l.quote)}`:''}</div>
+      <div class="fbox pub"><b>메모, 첨부</b>${esc(l.memo)||blank('메모 없음')}\n${blank('댓글, 화면 캡처 첨부 없음')}</div>
+      <div class="fbox intent"><b>작가 의도</b><span class="muted">내가 해석한 의도</span> / ${esc(l.intentMine)||blank()}\n<span class="muted">작가가 직접 밝힌 의도</span> / ${l.intentAuthor?`${esc(l.intentAuthor)}${l.intentSource?` (출처: ${esc(l.intentSource)})`:''}`:blank()}</div>
       <div class="epact"><button class="btn sm" type="button" data-act="editLog" data-id="${esc(l.id)}">이 회차 편집</button></div>
     </div></details>`).join('')}</div>`}
 function tChart(w){
-  const E=[...w.logs].filter(l=>Number.isFinite(l.ep)).sort((a,b)=>a.ep-b.ep);if(!E.length)return '<div class="card">회차 로그를 추가하면 그래프가 그려져요.</div>';
-  const n=Math.max(...E.map(e=>e.ep)),L=150,Wd=1000,cw=(Wd-L-10)/n,cx=ep=>L+cw*(ep-.5);let y=10,o='';
+  const E=[...w.logs].filter(l=>Number.isFinite(l.ep)).sort((a,b)=>a.ep-b.ep);if(!E.length)return '<div class="card">회차 로그를 추가하면 그래프가 그려집니다.</div>';
+  const n=Math.max(...E.map(e=>e.ep)),L=150,Wd=1000,cw=(Wd-L-10)/n,cx=ep=>L+cw*(ep-.5);const M=(w.marks||[]).filter(m=>m.ep>=1&&m.ep<=n);let y=M.length?40:10,o='';
   const lab=(t,s)=>`<text x="0" y="${y+14}" font-size="14" font-weight="700" fill="#141820">${t}</text><text x="0" y="${y+32}" font-size="11.5" fill="#98A1AE">${s}</text>`;
   const line=(k,t,s,lo,hi,fmt)=>{const v=E.filter(e=>e[k]!=null);if(!v.length){o+=lab(t,s)+`<text x="${L}" y="${y+22}" font-size="12.5" fill="#98A1AE">아직 기록 없음</text>`;y+=50;return}
     const h=110,Y=x=>y+6+(hi-x)/(hi-lo)*(h-12);o+=lab(t,s);[lo,hi].forEach(g=>o+=`<line x1="${L}" x2="${Wd-10}" y1="${Y(g)}" y2="${Y(g)}" stroke="#EEF0F3"/><text x="${L-8}" y="${Y(g)+4}" font-size="11" fill="#98A1AE" text-anchor="end">${g}</text>`);
     o+=`<polyline points="${v.map(e=>cx(e.ep)+','+Y(e[k])).join(' ')}" fill="none" stroke="#141820" stroke-width="2"/>`;v.forEach(e=>o+=`<circle cx="${cx(e.ep)}" cy="${Y(e[k])}" r="4.5" fill="#141820" stroke="#fff" stroke-width="2"/><circle cx="${cx(e.ep)}" cy="${Y(e[k])}" r="12" fill="transparent" data-tip="${e.ep}화 ${t} ${fmt(e[k])}"/>`);y+=h+24};
-  line('myStar','내 별점','내 기록 · 몰입 1~5',1,5,v=>v+'점');
+  line('myStar','내 별점','내 기록 / 몰입 1~5',1,5,v=>v+'점');
   const pr=E.filter(e=>e.pubRating!=null).map(e=>e.pubRating);
-  line('pubRating','공개 평균 별점','공개 화면 · 1~10',pr.length?Math.floor(Math.min(...pr)):1,10,v=>v.toFixed(2));
+  line('pubRating','공개 평균 별점','공개 화면 / 11.6 기준',pr.length?Math.floor(Math.min(...pr)):1,10,v=>v.toFixed(2));
   const cv=E.filter(e=>e.comments!=null);
-  if(cv.length){const h=60,mx=Math.max(...cv.map(e=>e.comments)),base=y+h;o+=lab('댓글 수','공개 화면');o+=`<line x1="${L}" x2="${Wd-10}" y1="${base}" y2="${base}" stroke="#E6E9EE"/>`;cv.forEach(e=>{const bh=Math.max(2,e.comments/mx*(h-14)),bw=Math.min(22,cw*.55);o+=`<rect x="${cx(e.ep)-bw/2}" y="${base-bh}" width="${bw}" height="${bh}" rx="3" fill="${e.comments===mx?'#00A04D':'#C3CAD4'}" data-tip="${e.ep}화 댓글 ${e.comments}"/>`;if(e.comments===mx)o+=`<text x="${cx(e.ep)}" y="${base-bh-5}" font-size="11.5" font-weight="700" fill="#00A04D" text-anchor="middle">${e.comments}</text>`});y+=h+24}
+  if(cv.length){const h=60,mx=Math.max(...cv.map(e=>e.comments)),base=y+h,r0=Math.min(...cv.map(e=>e.ep)),r1=Math.max(...cv.map(e=>e.ep));o+=lab('댓글 수',`공개 화면 / ${r0}~${r1}화만 수집`);o+=`<line x1="${L}" x2="${Wd-10}" y1="${base}" y2="${base}" stroke="#E6E9EE"/>`;cv.forEach(e=>{const bh=Math.max(2,e.comments/mx*(h-14)),bw=Math.min(22,cw*.55);o+=`<rect x="${cx(e.ep)-bw/2}" y="${base-bh}" width="${bw}" height="${bh}" rx="3" fill="${e.comments===mx?'#141820':'#C3CAD4'}" data-tip="${e.ep}화 댓글 ${e.comments}"/>`;if(e.comments===mx)o+=`<text x="${cx(e.ep)}" y="${base-bh-5}" font-size="11.5" font-weight="700" fill="#141820" text-anchor="middle">${e.comments}</text>`});y+=h+24}
   const nv=E.filter(e=>e.next);
   o+=lab('다음 화 볼 이유','내 기록');
-  if(nv.length)nv.forEach(e=>{const c=e.next==='있다'?'#DDE2E9':e.next==='없다'?'#141820':'#00A04D';o+=`<rect x="${cx(e.ep)-cw/2+3}" y="${y+12}" width="${cw-6}" height="18" rx="5" fill="${c}" data-tip="${e.ep}화 다음 화 볼 이유: ${esc(e.next)}"/>`});
+  if(nv.length)nv.forEach(e=>{const c=e.next==='있다'?'#00A04D':e.next==='없다'?'#141820':'#DDE2E9';o+=`<rect x="${cx(e.ep)-cw/2+3}" y="${y+12}" width="${cw-6}" height="18" rx="5" fill="${c}" data-tip="${e.ep}화 다음 화 볼 이유: ${esc(e.next)}"/>`});
   else o+=`<text x="${L}" y="${y+26}" font-size="12.5" fill="#98A1AE">아직 기록 없음</text>`;
   y+=48;
-  for(let i=1;i<=n;i++)o+=`<text x="${cx(i)}" y="${y+6}" font-size="12" fill="#98A1AE" text-anchor="middle">${i}</text>`;
-  return `<div class="card"><p class="ctitle">회차 흐름</p><p class="cmeta">내 기록과 공개 반응을 같은 회차 축에 줄을 나눠 그립니다 · 서로 다른 데이터라 한 축에 겹치지 않습니다</p>
-    <div class="chart"><svg viewBox="0 0 ${Wd} ${y+14}" role="img" aria-label="회차별 내 별점, 공개 별점, 댓글 수, 다음 화 볼 이유">${o}</svg></div>
-    <div class="legend"><span>다음 화 볼 이유: 회색 = 있다 · 초록색 = 일단 있다 · 검은색 = 없다</span><span>초록 막대 = 댓글 최다 회차</span></div></div>`}
+  for(let i=1;i<=n;i++)o+=`<text x="${cx(i)}" y="${y+6}" font-size="12" fill="${M.some(m=>m.ep===i)?'#141820':'#98A1AE'}" font-weight="${M.some(m=>m.ep===i)?700:400}" text-anchor="middle">${i}</text>`;
+  // 핵심 회차: 세로 띠 + 위쪽 설명 (그래프 뒤에 깔림)
+  const bands=M.map(m=>`<rect x="${cx(m.ep)-cw/2+1}" y="30" width="${cw-2}" height="${y-36}" rx="6" fill="${m.c==='#00A04D'?'#E7F7EE':'#F1F3F6'}"/><text x="${cx(m.ep)}" y="20" font-size="12" font-weight="700" fill="${esc(m.c||'#141820')}" text-anchor="middle">${m.ep}화 ${esc(m.t)}</text>`).join('');
+  return `<div class="card"><p class="ctitle">회차 흐름</p><p class="cmeta">내 기록과 공개 반응을 같은 회차 축에 줄을 나눠 그립니다. 서로 다른 데이터라 한 줄에 겹치지 않습니다</p>
+    <div class="chart"><svg viewBox="0 0 ${Wd} ${y+14}" role="img" aria-label="회차별 내 별점, 공개 별점, 댓글 수, 다음 화 볼 이유">${bands}${o}</svg></div>
+    <div class="legend"><span>다음 화 볼 이유: 초록 = 있다, 회색 = 일단 있다, 검정 = 없다</span><span>검은 막대 = 댓글이 가장 많은 회차</span>${M.length?'<span>세로 띠 = 검토 메모에서 다룬 핵심 회차</span>':''}</div></div>`}
 function tNote(w){
   const L=[...w.logs].sort((a,b)=>a.ep-b.ep);
-  const R=w.review,goods=L.filter(l=>l.good),bads=L.filter(l=>l.bad),qs=L.filter(l=>l.question);
+  const R=w.review,goods=L.filter(l=>l.good),bads=L.filter(l=>l.bad),Q=qbook(w),PR=(w.proposals||[]).filter(p=>p.line);
+  const ep_=`<button class="btn sm" type="button" data-act="editProposals" data-id="${esc(w.id)}">편집</button>`;
   const li=(arr,k)=>arr.length?`<ul class="list">${arr.map(l=>`<li><b class="num">${l.ep}화</b> ${esc(l[k])}</li>`).join('')}</ul>`:blank('회차 로그에 적으면 여기에 모입니다');
   const eb=`<button class="btn sm" type="button" data-act="editReview" data-id="${esc(w.id)}">편집</button>`;
   const ec=`<button class="btn sm" type="button" data-act="editCriteria" data-id="${esc(w.id)}">편집</button>`;
   return `<div class="stack">
-    <div class="card" id="criteria"><p class="ctitle">작품 검토 기준 ${ec}</p><p class="cmeta">기준마다 관찰한 사실, 나의 해석, 검토 판단, 추가로 확인할 질문을 나눠 적습니다</p>
+    <div class="card" id="criteria"><p class="ctitle">작품 검토 기준 ${ec}</p><p class="cmeta">기준마다 관찰한 사실, 나의 해석, 검토 판단, 추가로 확인할 질문을 나눠 적습니다. 근거는 이 표에 모읍니다</p>
       <div class="crit">${R.criteria.map((c,i)=>`<div class="crow"><h4><span class="cn">0${i+1}</span>${esc(c.name)}</h4>
         <div class="cb fact"><b>관찰한 사실</b>${esc(c.fact)||blank()}</div><div class="cb interp"><b>나의 해석</b>${esc(c.interp)||blank()}</div><div class="cb judge"><b>검토 판단</b>${esc(c.judge)||'<span style="opacity:.6">아직 기록 없음</span>'}</div><div class="cb ask"><b>추가로 확인할 질문</b>${esc(c.ask)||blank()}</div></div>`).join('')}</div></div>
     <div class="grid2" style="align-items:start">
       <div class="card"><p class="ctitle">내가 발견한 매력 ${eb}</p><p class="cmeta">작품을 계속 읽게 한 것</p><p style="margin:0;font-size:15.5px;line-height:1.7">${esc(R.charm)||blank()}</p>
         <p class="ctitle" style="margin-top:20px;font-size:16px">독자가 다음 화를 기다릴 이유</p><p style="margin:6px 0 0;font-size:15px;line-height:1.7">${esc(R.hook)||blank()}</p></div>
-      <div class="card"><p class="ctitle">작가 의도 ${eb}</p><p class="cmeta">추정과 확인을 섞지 않습니다</p>
-        <dl class="kv"><dt>내가 해석한 의도</dt><dd>${esc(R.intentMine)||blank('원고를 읽으며 추정한 내용')}</dd><dt>작가가 밝힌 의도</dt><dd>${R.intentAuthor?`${esc(R.intentAuthor)}${R.intentSource?`\n출처: ${esc(R.intentSource)}`:''}`:blank('인터뷰 · 미팅 · 공개 발언으로 확인한 내용')}</dd><dt>작가에게 확인할 것</dt><dd style="font-weight:700">${esc(R.ask)||blank()}</dd></dl></div>
+      <div class="card"><p class="ctitle">작가 의도 ${eb}</p><p class="cmeta">내 추정과 작가에게 확인한 내용을 섞지 않습니다</p>
+        <dl class="kv"><dt>내가 해석한 의도</dt><dd>${esc(R.intentMine)||blank('원고를 읽으며 추정한 내용')}</dd><dt>작가가 밝힌 의도</dt><dd>${R.intentAuthor?`${esc(R.intentAuthor)}${R.intentSource?`\n출처: ${esc(R.intentSource)}`:''}`:blank('인터뷰, 미팅, 공개 발언으로 확인한 내용')}</dd><dt>작가에게 확인할 것</dt><dd style="font-weight:700">${esc(R.ask)||blank()}</dd></dl></div>
     </div>
-    <div class="card"><p class="ctitle">최종 검토 메모 ${eb}</p><p class="cmeta">${TRACK[w.track]} · ${(PURPOSE[w.track]||PURPOSE.serial).q}</p>
+    <div class="card"><p class="ctitle">최종 검토 메모 ${eb}</p><p class="cmeta">${TRACK[w.track]} / ${(PURPOSE[w.track]||PURPOSE.serial).q}</p>
+      <p style="margin:0 0 14px;font-size:16.5px;font-weight:700;line-height:1.6">${esc(w.summary)||blank('한 줄 판단을 적어 주세요')}</p>
       <div class="grid2" style="gap:14px"><div class="fbox"><b>작품의 강점</b>${esc(R.strengths)||blank()}</div><div class="fbox"><b>보완할 지점</b>${esc(R.gaps)||blank()}</div></div>
-      <div class="fbox" style="margin-top:14px"><b>다음에 논의할 질문</b>${esc(R.nextQ)||blank()}</div>
-      <p class="cmeta" style="margin:14px 0 0">한 줄 판단 · ${esc(w.summary)||'—'}</p></div>
-    <div class="grid2"><div class="card"><p class="ctitle">좋았던 점 모음</p><p class="cmeta">회차 로그에서 자동으로 모음</p>${li(goods,'good')}</div>
-      <div class="card"><p class="ctitle">아쉬운 점 모음</p><p class="cmeta">회차 로그에서 자동으로 모음</p>${li(bads,'bad')}</div></div>
-    <div class="card"><p class="ctitle">남은 질문</p><p class="cmeta">질문이 열린 회차 · 회차 로그에서 자동으로 모음</p>${qs.length?qs.map(l=>`<div class="qrow"><span>${esc(l.question)}</span><span class="cap num">${l.ep}화</span></div>`).join(''):blank()}</div>
+      ${R.nextQ?`<div class="fbox" style="margin-top:14px"><b>다음에 논의할 질문</b>${esc(R.nextQ)}</div>`:''}</div>
+    <div class="card" id="proposal"><p class="ctitle">작가님께 드릴 제안 ${ep_}</p><p class="cmeta">공개된 회차와 댓글로 세운 가설입니다. 작가님의 구상을 먼저 여쭙고 그 안에서 함께 정하며, 아직 적용 전입니다</p>
+      ${PR.length?`<div class="stack" style="gap:14px">${PR.map((p,i)=>`<div class="prop ${i===0?'first':''}"><div class="ph"><span class="rk">${i+1}순위</span><span class="tt">${esc(p.title)}</span></div><p class="ln">${esc(p.line)}</p>
+        <dl>${p.evidence?`<dt>근거</dt><dd>${esc(p.evidence)}</dd>`:''}${p.ask?`<dt>먼저 여쭐 것</dt><dd>${esc(p.ask)}</dd>`:''}${p.metric?`<dt>확인할 지표</dt><dd>${esc(p.metric)}</dd>`:''}</dl></div>`).join('')}</div>`:blank('검토 기준을 채운 뒤 제안을 적습니다')}</div>
+    <div class="grid2"><div class="card"><p class="ctitle">좋았던 점 모음</p><p class="cmeta">회차 로그에서 자동으로 모읍니다</p>${li(goods,'good')}</div>
+      <div class="card"><p class="ctitle">아쉬운 점 모음</p><p class="cmeta">회차 로그에서 자동으로 모읍니다</p>${li(bads,'bad')}</div></div>
+    <div class="card"><p class="ctitle">질문 장부</p><p class="cmeta">회차 로그에서 자동으로 모읍니다. 열린 질문 ${Q.open.length}개, 풀린 질문 ${Q.closed.length}개</p>${Q.all.length?[...Q.open,...Q.closed].map(x=>`<div class="qrow ${x.closed?'done':''}"><span>${esc(x.q)}</span><span class="cap num">${x.ep}화에 열림${x.closed?` / <b style="color:var(--blue)">${x.closed}화에 풀림</b>`:''}</span></div>`).join(''):blank()}</div>
+    ${(w.limits||[]).length?`<div class="card"><p class="ctitle">이 기록의 한계 ${eb}</p><p class="cmeta">판단을 읽을 때 함께 봐 주세요</p><ul class="limits">${w.limits.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>`:''}
   </div>`}
 
 /* ── 렌더 ── */
-function render(){const w=VIEW.work&&work(VIEW.work);$('app').innerHTML=w?vWork(w):vHome();document.title=(w?w.title+' · ':'')+'Data Archive Lab'}
+function render(){if(location.hash==='#/visits'&&ADMIN&&API_OK){document.title='Data Archive Lab';vVisits();return}const w=VIEW.work&&work(VIEW.work);$('app').innerHTML=w?vWork(w):vHome();document.title=(w?w.title+' / ':'')+'Data Archive Lab'}
 function go(id,tab){VIEW.work=id;VIEW.tab=tab||'overview';location.hash=id?'#/w/'+id+'/'+VIEW.tab:'#/';}
 // 주소: #/w/작품/탭  ·  회차 바로가기: #/w/작품/logs/15
 function readHash(){const m=location.hash.match(/^#\/w\/([^/]+)(?:\/(\w+))?(?:\/(\d+))?/);VIEW.work=m&&work(m[1])?m[1]:null;VIEW.tab=m&&m[2]&&TABS.some(t=>t[0]===m[2])?m[2]:'overview';VIEW.ep=m&&m[3]?+m[3]:null}
@@ -376,7 +452,7 @@ window.addEventListener('hashchange',()=>{readHash();closeDrawer();render();cons
 /* ── 편집 서랍 ── */
 let dSave=null;
 function openDrawer(title,desc,body,onSave,extra){const d=$('drawer');
-  d.innerHTML=`<header><div><h2>${esc(title)}</h2>${desc?`<p>${esc(desc)}</p>`:''}</div><button class="btn sm" type="button" data-act="close">닫기</button></header><form class="body" id="dform"><div class="fg">${body}</div></form><footer>${extra||''}<span class="sp"></span>${SRC==='server'?'':'<span class="cap" style="font-size:12px">체험 모드 · 저장 내용은 이 브라우저에만 남아요</span>'}<button class="btn" type="button" data-act="close">취소</button><button class="btn primary" type="submit" form="dform">저장</button></footer>`;
+  d.innerHTML=`<header><div><h2>${esc(title)}</h2>${desc?`<p>${esc(desc)}</p>`:''}</div><button class="btn sm" type="button" data-act="close">닫기</button></header><form class="body" id="dform"><div class="fg">${body}</div></form><footer>${extra||''}<span class="sp"></span>${SRC==='server'?'':'<span class="cap" style="font-size:12px">체험 모드 / 저장 내용은 이 브라우저에만 남습니다</span>'}<button class="btn" type="button" data-act="close">취소</button><button class="btn primary" type="submit" form="dform">저장</button></footer>`;
   dSave=onSave;d.classList.add('on');d.setAttribute('aria-hidden','false');$('scrim').classList.add('on');
   $('dform').onsubmit=e=>{e.preventDefault();const r=[...e.target.querySelectorAll('[required]')].find(x=>!x.value.trim());if(r){r.focus();toast('필수 항목을 채워 주세요');return}if(dSave&&dSave(e.target)!==false)closeDrawer()};
   setTimeout(()=>d.querySelector('input,textarea,select')?.focus(),60)}
@@ -388,57 +464,76 @@ const F=(k,l,v,o={})=>{const req=o.req?'required':'';let i;
   else i=`<input name="${k}" value="${esc(v??'')}" ${req} type="${o.type||'text'}" placeholder="${esc(o.ph||'')}" ${o.step?`step="${o.step}"`:''}>`;
   return `<label class="f ${o.half?'half':''}">${esc(l)}${o.req?' *':''}${i}${o.h?`<span class="h">${esc(o.h)}</span>`:''}</label>`};
 const S=t=>`<div class="sect">${esc(t)}</div>`;
-const DROP=(t,s)=>`<div class="f"><span>${esc(t)}</span><div class="drop" role="group" aria-label="${esc(t)}"><b>이미지를 끌어다 놓거나 눌러서 선택</b>${esc(s)}<br><small>프로토타입 · 실제 업로드는 되지 않아요</small></div></div>`;
+const DROP=(t,s)=>`<div class="f"><span>${esc(t)}</span><div class="drop" role="group" aria-label="${esc(t)}"><b>이미지를 끌어다 놓거나 눌러서 선택</b>${esc(s)}<br><small>프로토타입이라 실제 업로드는 되지 않습니다</small></div></div>`;
 const V=(f,k)=>(f.elements[k]?.value??'').trim();
 const N=v=>{const x=parseFloat(String(v??'').replace(/[^0-9.\-]/g,''));return Number.isFinite(x)?x:null};
 const ACT={
-  close:closeDrawer,home:()=>go(null),open:id=>go(id),tab:id=>go(VIEW.work,id),
+  close:closeDrawer,home:()=>go(null),open:id=>go(id),tab:id=>go(VIEW.work,id),visits:()=>{location.hash='#/visits'},
   filter:id=>{VIEW.filter=id;render()},
-  resetLocal(){if(!confirm('이 브라우저에서 고친 내용을 지우고 처음 상태로 되돌릴까요?'))return;store(LSKEY,null);const pub=PUBLISHED&&PUBLISHED.lab;LAB=normalize(pub?JSON.parse(JSON.stringify(pub)):null);ROOT.lab=pub?JSON.parse(JSON.stringify(pub)):undefined;SRC=pub?'published':'seed';VIEW.work=null;location.hash='#/';render();toast('처음 상태로 되돌렸어요')},
+  resetLocal(){if(!confirm('이 브라우저에서 고친 내용을 지우고 처음 상태로 되돌릴까요?'))return;store(LSKEY,null);const pub=PUBLISHED&&PUBLISHED.lab;LAB=normalize(pub?JSON.parse(JSON.stringify(pub)):null);ROOT.lab=pub?JSON.parse(JSON.stringify(pub)):undefined;SRC=pub?'published':'seed';VIEW.work=null;location.hash='#/';render();toast('처음 상태로 되돌렸습니다')},
   newWork:(track)=>editWork(null,track),editWork:id=>editWork(id),
-  editFirst(id){const w=work(id);openDrawer('초기 판단 · 판단 검증',w.title,
-    S('초기 판단')+F('pick','픽 사유',w.first.pick,{type:'area',ph:'이 작품을 계속 볼 이유, 독자에게 통할 것 같은 점'})+F('risk','우려 요소',w.first.risk,{type:'area'})+F('expect','예상 전개 · 독자 반응',w.first.expect,{type:'area'})+F('date','작성 시점',w.first.date,{ph:'예: 3화까지 읽고 · 2026.11.20',half:true})+S('판단 검증')+F('verify','검증 메모',w.verify,{type:'area',h:'회차가 쌓인 뒤, 초기 판단이 맞았는지 · 무엇을 놓쳤는지'}),
-    f=>{w.first={pick:V(f,'pick'),risk:V(f,'risk'),expect:V(f,'expect'),date:V(f,'date')};w.verify=V(f,'verify');save('저장했어요')})},
+  editFirst(id){const w=work(id);openDrawer('초기 판단, 판단 검증',w.title,
+    S('초기 판단')+F('pick','픽 사유',w.first.pick,{type:'area',ph:'이 작품을 계속 볼 이유, 독자에게 통할 것 같은 점'})+F('risk','우려 요소',w.first.risk,{type:'area'})+F('expect','예상 전개, 독자 반응',w.first.expect,{type:'area'})+F('date','작성 시점',w.first.date,{ph:'예: 3화까지 읽고 / 2026.11.20',half:true})+S('판단 검증')+F('verify','검증 메모',w.verify,{type:'area',h:'회차가 쌓인 뒤, 초기 판단이 맞았는지와 무엇을 놓쳤는지'}),
+    f=>{w.first={pick:V(f,'pick'),risk:V(f,'risk'),expect:V(f,'expect'),date:V(f,'date')};w.verify=V(f,'verify');save('저장했습니다')})},
+  editProposals(id){const w=work(id),P=w.proposals.length?w.proposals:EMPTY_PROPOSALS();while(P.length<2)P.push({title:'',line:'',evidence:'',ask:'',metric:''});
+    openDrawer('작가님께 드릴 제안',w.title+' / 근거, 먼저 여쭐 것, 확인할 지표를 함께 적습니다',
+    P.slice(0,2).map((p,i)=>S(`${i+1}순위`)+F('t'+i,'제안 이름',p.title,{half:true,ph:'예: 서사 호흡'})+F('l'+i,'제안 한 줄',p.line,{type:'area'})+F('e'+i,'근거',p.evidence,{type:'area',h:'한 줄에 하나씩'})+F('a'+i,'먼저 여쭐 것',p.ask,{type:'area'})+F('m'+i,'확인할 지표',p.metric)).join(''),
+    f=>{w.proposals=[0,1].map(i=>({title:V(f,'t'+i),line:V(f,'l'+i),evidence:V(f,'e'+i),ask:V(f,'a'+i),metric:V(f,'m'+i)}));save('제안을 저장했습니다')})},
   newLog(){const w=work(VIEW.work);const ep=(w.logs.reduce((m,l)=>Math.max(m,l.ep||0),0))+1;editLog(null,ep)},
   editLog:id=>editLog(id),
-  editCriteria(id){const w=work(id),C=w.review.criteria;openDrawer('작품 검토 기준',w.title+' / 기준마다 사실과 해석을 나눠 적어요',
+  editCriteria(id){const w=work(id),C=w.review.criteria;openDrawer('작품 검토 기준',w.title+' / 기준마다 사실과 해석을 나눠 적습니다',
     C.map((c,i)=>S(`0${i+1} ${c.name}`)+F('f'+i,'관찰한 사실',c.fact,{type:'area',h:'공개 화면, 댓글, 내 리딩 로그에서 확인한 것'})+F('i'+i,'나의 해석',c.interp,{type:'area'})+F('j'+i,'검토 판단',c.judge,{type:'area'})+F('a'+i,'추가로 확인할 질문',c.ask,{type:'area'})).join(''),
-    f=>{C.forEach((c,i)=>{c.fact=V(f,'f'+i);c.interp=V(f,'i'+i);c.judge=V(f,'j'+i);c.ask=V(f,'a'+i)});save('검토 기준을 저장했어요')})},
+    f=>{C.forEach((c,i)=>{c.fact=V(f,'f'+i);c.interp=V(f,'i'+i);c.judge=V(f,'j'+i);c.ask=V(f,'a'+i)});save('검토 기준을 저장했습니다')})},
   editReview(id){const w=work(id),R=w.review;openDrawer('검토 메모',w.title,
     S('작품을 읽고')+F('charm','내가 발견한 매력',R.charm,{type:'area'})+F('hook','독자가 다음 화를 기다릴 이유',R.hook,{type:'area'})+
-    S('작가 의도')+F('intentMine','내가 해석한 작가의 의도',R.intentMine,{type:'area',h:'원고를 읽으며 추정한 내용'})+F('intentAuthor','작가가 직접 밝힌 의도',R.intentAuthor,{type:'area',h:'인터뷰 · 미팅 · 공개 발언으로 확인한 내용만'})+F('intentSource','출처',R.intentSource,{ph:'예: 2026.12 작가 미팅'})+F('ask','작가에게 확인할 것',R.ask,{type:'area'})+
-    S('최종 검토 메모')+F('strengths','작품의 강점',R.strengths,{type:'area'})+F('gaps','보완할 지점',R.gaps,{type:'area'})+F('nextQ','다음에 논의할 질문',R.nextQ,{type:'area'})+F('summary','한 줄 판단',w.summary,{type:'area'}),
-    f=>{['charm','hook','intentMine','intentAuthor','intentSource','ask','strengths','gaps','nextQ'].forEach(k=>R[k]=V(f,k));w.summary=V(f,'summary');save('검토 메모를 저장했어요')})},
+    S('작가 의도')+F('intentMine','내가 해석한 작가의 의도',R.intentMine,{type:'area',h:'원고를 읽으며 추정한 내용'})+F('intentAuthor','작가가 직접 밝힌 의도',R.intentAuthor,{type:'area',h:'인터뷰, 미팅, 공개 발언으로 확인한 내용만'})+F('intentSource','출처',R.intentSource,{ph:'예: 2026.12 작가 미팅'})+F('ask','작가에게 확인할 것',R.ask,{type:'area'})+
+    S('최종 검토 메모')+F('summary','한 줄 판단',w.summary,{type:'area'})+F('strengths','작품의 강점',R.strengths,{type:'area'})+F('gaps','보완할 지점',R.gaps,{type:'area'})+F('nextQ','다음에 논의할 질문',R.nextQ,{type:'area',h:'비워 두면 화면에 나오지 않습니다'})+
+    S('이 기록의 한계')+F('limits','한계',(w.limits||[]).join('\n'),{type:'area',h:'한 줄에 하나씩'}),
+    f=>{['charm','hook','intentMine','intentAuthor','intentSource','ask','strengths','gaps','nextQ'].forEach(k=>R[k]=V(f,k));w.summary=V(f,'summary');w.limits=V(f,'limits').split('\n').map(s=>s.trim()).filter(Boolean);save('검토 메모를 저장했습니다')})},
   star:(n,b)=>{const p=b.parentElement;p.querySelectorAll('button').forEach((x,i)=>x.classList.toggle('on',i<+n));$('dform').elements.myStar.value=n},
-  delLog(id){const w=work(VIEW.work);if(!confirm('이 회차 로그를 삭제할까요?'))return;w.logs=w.logs.filter(l=>l.id!==id);closeDrawer();save('삭제했어요')},
-  delWork(id){const w=work(id);if(!confirm(`『${w.title}』과 회차 로그를 모두 삭제할까요?`))return;LAB.works=LAB.works.filter(x=>x.id!==id);closeDrawer();VIEW.work=null;location.hash='#/';save('삭제했어요')}
+  delLog(id){const w=work(VIEW.work);if(!confirm('이 회차 로그를 삭제할까요?'))return;w.logs=w.logs.filter(l=>l.id!==id);closeDrawer();save('삭제했습니다')},
+  delWork(id){const w=work(id);if(!confirm(`[${w.title}]과 회차 로그를 모두 삭제할까요?`))return;LAB.works=LAB.works.filter(x=>x.id!==id);closeDrawer();VIEW.work=null;location.hash='#/';save('삭제했습니다')}
 };
 function editWork(id,track){const w=id?work(id):null;
   openDrawer(w?'작품 정보 편집':'작품 등록',w?w.title:'검토할 작품을 서재에 추가합니다',
     S('기본 정보')+F('title','웹툰 제목',w?.title,{req:1})+F('track','구분',w?.track||track||'serial',{type:'select',opts:Object.entries(TRACK),half:true})+F('status','검토 상태',w?.status||'검토 예정',{type:'select',opts:STATUS,half:true})+
-    F('author','작가',w?.author,{half:true})+F('platform','플랫폼 · 연재처',w?.platform,{half:true,ph:'예: 네이버웹툰 도전만화'})+
-    DROP('표지 이미지','작품 표지 또는 대표 이미지')+F('intro','소개글',w?.intro,{type:'area',h:'공식 소개글을 원문 그대로'})+F('tags','태그',(w?.tags||[]).join(', '),{h:'쉼표로 구분 · # 없이'})+F('source','수집 출처 · 날짜',w?.source)+
-    S('검토 메모')+F('summary','한 줄 판단',w?.summary,{type:'area',h:'강점 · 보완점 · 작가 의도는 검토 메모 탭에서 적어요'}),
+    F('author','작가',w?.author,{half:true})+F('platform','플랫폼, 연재처',w?.platform,{half:true,ph:'예: 네이버웹툰 / 도전만화'})+
+    DROP('표지 이미지','작품 표지 또는 대표 이미지')+F('intro','소개글',w?.intro,{type:'area',h:'공식 소개글을 원문 그대로'})+F('tags','태그',(w?.tags||[]).join(', '),{h:'쉼표로 구분, # 없이'})+F('source','수집 출처, 날짜',w?.source)+
+    S('검토 메모')+F('summary','한 줄 판단',w?.summary,{type:'area',h:'강점, 보완점, 작가 의도는 검토 메모 탭에서 적습니다'}),
     f=>{const o={title:V(f,'title'),track:V(f,'track'),status:V(f,'status'),author:V(f,'author'),platform:V(f,'platform'),intro:V(f,'intro'),tags:V(f,'tags').split(',').map(s=>s.trim().replace(/^#/,'')).filter(Boolean),source:V(f,'source'),summary:V(f,'summary')};
-      if(w){Object.assign(w,o);save('저장했어요')}else{const nw={id:uid('w'),...o,first:{pick:'',risk:'',expect:'',date:''},verify:'',review:EMPTY_REVIEW(),logs:[],updated:today()};LAB.works.push(nw);save('작품을 등록했어요');go(nw.id)}},
+      if(w){Object.assign(w,o);save('저장했습니다')}else{const nw={id:uid('w'),...o,first:{pick:'',risk:'',expect:'',date:''},verify:'',review:EMPTY_REVIEW(),proposals:EMPTY_PROPOSALS(),limits:[],marks:[],logs:[],updated:today()};LAB.works.push(nw);save('작품을 등록했습니다');go(nw.id)}},
     w?`<button class="btn sm danger" type="button" data-act="delWork" data-id="${esc(w.id)}">작품 삭제</button>`:'')}
 function editLog(id,epNew){const w=work(VIEW.work);const l=id?w.logs.find(x=>x.id===id):{ep:epNew};
   openDrawer(id?`${l.ep}화 리딩 로그`:`${epNew}화 리딩 로그 추가`,w.title,
     S('내 감상')+F('ep','회차',l.ep,{type:'number',half:true,req:1})+`<label class="f half">내 별점 (몰입 1~5)<div class="starpick">${[1,2,3,4,5].map(i=>`<button type="button" class="${i<=(l.myStar||0)?'on':''}" data-act="star" data-id="${i}" aria-label="${i}점">★</button>`).join('')}</div><input type="hidden" name="myStar" value="${l.myStar||''}"></label>`+
-    F('next','다음 화 볼 이유',l.next,{type:'select',opts:[['','선택 안 함'],'있다','일단 있다','없다'],half:true,h:'데이터 차팅의 다음 화 볼 이유 줄에 바로 반영돼요'})+
-    F('good','좋았던 점',l.good,{type:'area'})+F('bad','아쉬운 점',l.bad,{type:'area'})+F('question','남은 질문',l.question,{h:'이 회차에서 새로 생긴 궁금증'})+F('memo','메모',l.memo)+
-    S('공개 반응')+F('pubRating','평균 별점',l.pubRating,{half:true,type:'number',step:'0.01'})+F('likes','좋아요',l.likes,{half:true,type:'number'})+F('comments','댓글 수',l.comments,{half:true,type:'number'})+F('quote','인상적인 댓글 · 공감 수',l.quote,{type:'area',h:'닉네임 없이 원문 요지와 공감 수만'})+
-    DROP('댓글 · 화면 캡처','회차 화면이나 댓글 캡처')+
-    S('작가 의도')+F('intentMine','내가 해석한 의도',l.intentMine,{type:'area',h:'원고를 읽으며 추정한 이 회차의 의도'})+F('intentAuthor','작가가 직접 밝힌 의도',l.intentAuthor,{type:'area',h:'인터뷰 · 미팅 · 공개 발언으로 확인한 내용만'})+F('intentSource','출처',l.intentSource,{ph:'예: 작가 후기 · 2026.12 미팅'}),
-    f=>{const o={ep:N(V(f,'ep')),myStar:N(V(f,'myStar')),next:V(f,'next'),good:V(f,'good'),bad:V(f,'bad'),question:V(f,'question'),memo:V(f,'memo'),pubRating:N(V(f,'pubRating')),likes:N(V(f,'likes')),comments:N(V(f,'comments')),quote:V(f,'quote'),intentMine:V(f,'intentMine'),intentAuthor:V(f,'intentAuthor'),intentSource:V(f,'intentSource')};
-      if(id)Object.assign(l,o);else w.logs.push({id:uid('e'),...o});save(`${o.ep}화 로그를 저장했어요`)},
+    F('next','다음 화 볼 이유',l.next,{type:'select',opts:[['','선택 안 함'],'있다','일단 있다','없다'],half:true,h:'데이터 차팅의 다음 화 볼 이유 줄에 바로 반영됩니다'})+
+    F('good','좋았던 점',l.good,{type:'area'})+F('bad','아쉬운 점',l.bad,{type:'area'})+F('question','새로 생긴 질문',l.question,{h:'이 회차에서 새로 생긴 궁금증'})+
+    F('solves','이 회차에서 풀린 질문',l.solves??'',{type:'select',opts:[['','없음'],...w.logs.filter(x=>x.question&&x.ep<(l.ep||epNew)).sort((a,b)=>a.ep-b.ep).map(x=>[x.ep,`${x.ep}화 / ${x.question}`])],h:'질문 장부에 풀린 질문으로 표시됩니다'})+F('memo','메모',l.memo)+
+    S('공개 반응')+F('pubRating','평균 별점',l.pubRating,{half:true,type:'number',step:'0.01'})+F('likes','좋아요',l.likes,{half:true,type:'number'})+F('comments','댓글 수',l.comments,{half:true,type:'number'})+F('quote','인상적인 댓글, 공감 수',l.quote,{type:'area',h:'닉네임 없이 원문 요지와 공감 수만'})+
+    DROP('댓글, 화면 캡처','회차 화면이나 댓글 캡처')+
+    S('작가 의도')+F('intentMine','내가 해석한 의도',l.intentMine,{type:'area',h:'원고를 읽으며 추정한 이 회차의 의도'})+F('intentAuthor','작가가 직접 밝힌 의도',l.intentAuthor,{type:'area',h:'인터뷰, 미팅, 공개 발언으로 확인한 내용만'})+F('intentSource','출처',l.intentSource,{ph:'예: 작가 후기 / 2026.12 미팅'}),
+    f=>{const o={ep:N(V(f,'ep')),myStar:N(V(f,'myStar')),next:V(f,'next'),good:V(f,'good'),bad:V(f,'bad'),question:V(f,'question'),solves:N(V(f,'solves')),memo:V(f,'memo'),pubRating:N(V(f,'pubRating')),likes:N(V(f,'likes')),comments:N(V(f,'comments')),quote:V(f,'quote'),intentMine:V(f,'intentMine'),intentAuthor:V(f,'intentAuthor'),intentSource:V(f,'intentSource')};
+      if(id)Object.assign(l,o);else w.logs.push({id:uid('e'),...o});save(`${o.ep}화 로그를 저장했습니다`)},
     id?`<button class="btn sm danger" type="button" data-act="delLog" data-id="${esc(id)}">회차 삭제</button>`:'')}
 document.addEventListener('click',e=>{const a=e.target.closest('[data-act]');if(!a||!ACT[a.dataset.act])return;if(a.closest('.drop'))return;e.preventDefault();ACT[a.dataset.act](a.dataset.id,a)});
-document.addEventListener('click',e=>{if(e.target.closest('.drop'))toast('프로토타입이라 실제 업로드는 되지 않아요')});
+document.addEventListener('click',e=>{if(e.target.closest('.drop'))toast('프로토타입이라 실제 업로드는 되지 않습니다')});
 const tip=$('tip');document.addEventListener('mousemove',e=>{const t=e.target.closest&&e.target.closest('[data-tip]');if(!t){tip.style.opacity=0;return}tip.textContent=t.getAttribute('data-tip');tip.style.left=Math.min(e.clientX+12,innerWidth-tip.offsetWidth-8)+'px';tip.style.top=e.clientY+14+'px';tip.style.opacity=1});
 
 /* ── 시작 ── */
-async function unlock(){const k=prompt('편집 키를 입력해 주세요');if(!k)return;try{const r=await fetch('/api/notes',{method:'POST',headers:{'content-type':'application/json','x-admin-key':k},body:JSON.stringify({check:true})});if(r.ok){ADMIN=k;store('lab-admin',k)}else alert('편집 키가 맞지 않아요')}catch(e){alert('저장소에 연결하지 못했어요')}}
+async function unlock(){const k=prompt('키');if(!k)return;try{const r=await fetch('/api/notes',{method:'POST',headers:{'content-type':'application/json','x-admin-key':k},body:JSON.stringify({check:true})});if(r.ok){ADMIN=k;store('lab-admin',k)}else alert('맞지 않습니다')}catch(e){alert('연결하지 못했습니다')}}
+async function vVisits(){const a=$('app');if(!(ADMIN&&API_OK)){location.hash='#/';return}
+  a.innerHTML='<button class="back" type="button" data-act="home">← 검토 중인 작품</button><div class="card"><p class="ctitle">방문 기록</p><p class="cmeta">불러오는 중</p></div>';
+  let rows=[];try{const r=await fetch('/api/visit',{headers:{'x-admin-key':ADMIN},cache:'no-store'});if(!r.ok)throw 0;rows=(await r.json()).visits||[]}catch(e){a.querySelector('.cmeta').textContent='불러오지 못했습니다';return}
+  const dec=s=>{try{return decodeURIComponent(s||'')}catch(e){return s||''}};
+  const fmt=t=>{const d=new Date(t);return `${d.getMonth()+1}.${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
+  const days={};rows.forEach(v=>{const d=new Date(v.t),k=`${d.getMonth()+1}.${d.getDate()}`;days[k]=(days[k]||0)+1});
+  const dev={};rows.forEach(v=>dev[v.device]=(dev[v.device]||0)+1);
+  a.innerHTML=`<button class="back" type="button" data-act="home">← 검토 중인 작품</button>
+  <div class="card"><p class="ctitle">방문 기록</p><p class="cmeta">최근 ${rows.length}건 / 이름과 IP는 저장하지 않습니다. 관리 모드에서 연 화면은 기록하지 않습니다</p>
+    <p style="margin:0 0 6px;font-size:14px"><b>날짜별</b> ${Object.entries(days).map(([k,n])=>`${k} ${n}건`).join(', ')||'-'}</p>
+    <p style="margin:0 0 16px;font-size:14px"><b>기기</b> ${Object.entries(dev).map(([k,n])=>`${esc(k)} ${n}`).join(', ')||'-'}</p>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13.5px;min-width:620px"><thead><tr style="text-align:left;color:var(--cap)"><th style="padding:8px 6px">시간</th><th>지역</th><th>기기</th><th>처음 연 화면</th><th>들어온 곳</th></tr></thead>
+    <tbody>${rows.map(v=>`<tr style="border-top:1px solid var(--line)"><td style="padding:8px 6px" class="num">${fmt(v.t)}</td><td>${esc([v.country,dec(v.city)].filter(Boolean).join(' '))||'-'}</td><td>${esc(v.device)}</td><td>${esc(v.path)}</td><td>${esc(v.ref)||'직접'}</td></tr>`).join('')||'<tr><td colspan="5" style="padding:12px 6px" class="cap">아직 기록이 없습니다</td></tr>'}</tbody></table></div></div>`}
 function logVisit(){try{if(ADMIN)return;fetch('/api/visit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:'/lab/'+(location.hash||'#'),ref:document.referrer||''}),keepalive:true}).catch(()=>{})}catch(e){}}
 (async function boot(){
   if(new URLSearchParams(location.search).has('edit')&&!ADMIN){history.replaceState(null,'',location.pathname+location.hash);await unlock()}
@@ -449,7 +544,7 @@ function logVisit(){try{if(ADMIN)return;fetch('/api/visit',{method:'POST',header
   else if(local&&Array.isArray(local.works)){LAB=normalize(local);SRC='local'}
   else{LAB=normalize(ROOT.lab);SRC=ROOT.lab?'published':'seed'}
   readHash();
-  if(!VIEW.work&&location.hash&&location.hash!=='#/')history.replaceState(null,'',location.pathname+location.search+'#/');
+  if(!VIEW.work&&location.hash&&location.hash!=='#/'&&!(location.hash==='#/visits'&&ADMIN))history.replaceState(null,'',location.pathname+location.search+'#/');
   render();const t=VIEW.ep&&document.getElementById('ep-'+VIEW.ep);if(t)t.scrollIntoView({block:'nearest'});logVisit()})();
 </script>
 </body>
